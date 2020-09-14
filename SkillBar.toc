@@ -1,0 +1,22 @@
+## Interface: 90002
+## Title: Skill Bar
+## Author: Falstar
+## Version: 0.1
+## Dependencies: WeakAuras
+## OptionalDeps: CallbackHandler-1.0, LibRangeCheck-2.0, LibStub
+
+# external code
+embeds.xml
+
+# common
+skillbar.lua
+callback.lua
+common.lua
+
+# warlock
+warlock.lua
+affliction.lua
+destruction.lua
+
+#driver
+driver.lua
