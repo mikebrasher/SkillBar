@@ -3,10 +3,6 @@
 ## Author: Falstar
 ## Version: 0.1
 ## Dependencies: WeakAuras
-## OptionalDeps: CallbackHandler-1.0, LibRangeCheck-2.0, LibStub
-
-# external code
-embeds.xml
 
 # common
 skillbar.lua
@@ -16,6 +12,7 @@ common.lua
 # warlock
 warlock.lua
 affliction.lua
+demonology.lua
 destruction.lua
 
 #driver

@@ -18,46 +18,17 @@ local skill_enum =
       NIL = 0,
       AGONY = 980,
       BURNING_RUSH = 111400,
-      CORRUPTION = 172,
-      CURSE_OF_EXHAUSTION = 334275,
-      CURSE_OF_RECKLESSNESS = 321997,
-      CURSE_OF_TONGUES = 1714,
-      CURSE_OF_WEAKNESS = 702,
       DARK_PACT = 108416,
       DARK_SOUL_MISERY = 113860,
-      DEMONIC_CIRCLE = 48018,
-      DEMONIC_CIRCLE_TELEPORT = 48020,
-      DRAIN_LIFE = 234153,
       DRAIN_SOUL = 198590,
-      FEAR = 5782,
-      FEL_DOMINATION = 333889,
-      GRIMOIRE_OF_SACRIFICE = 108503,
       HAUNT = 48181,
-      HEALTH_FUNNEL = 755,
-      HOWL_OF_TERROR = 5484,
       MALEFIC_RAPTURE = 324536,
-      MORTAL_COIL = 6789,
       PHANTOM_SINGULARITY = 205179,
-      SHADOW_BOLT = 686,
-      SHADOW_BULWARK = 119907,
       SHADOW_EMBRACE = 32388,
-      SHADOWFURY = 30283,
-      SINGE_MAGIC = 119905,
       SIPHON_LIFE = 63106,
-      SPELL_LOCK = 119910,
-      SEDUCTION = 119909,
       SUMMON_DARKGLARE = 205180,
-      SUMMON_FELHUNTER = 691,
-      SUMMON_IMP = 688,
-      SUMMON_SUCCUBUS = 712,
-      SUMMON_VOIDWALKER = 697,
-      UNENDING_RESOLVE = 104773,
       UNSTABLE_AFFLICTION = 316099,
       VILE_TAINT = 278350,
-      SCOURING_TITHE = 312321,
-      IMPENDING_CATASTROPHE = 321792,
-      DECIMATING_BOLT = 325289,
-      SOUL_ROT = 325640,
    }
 
 
@@ -182,7 +153,7 @@ end
 
 
 ----------------- shadow bolt ------------------
-local shadowbolt = common.skill:new(skill_enum.SHADOW_BOLT)
+local shadowbolt = common.skill:new(warlock.skill_enum.SHADOW_BOLT)
 setmetatable(shadowbolt, common.skill)
     
 function shadowbolt:update(now)
@@ -222,7 +193,7 @@ end
 local skills =
    {
       agony              = common.skill:new(skill_enum.AGONY),
-      corruption         = common.skill:new(skill_enum.CORRUPTION),
+      corruption         = common.skill:new(warlock.skill_enum.CORRUPTION),
       siphonlife         = common.skill:new(skill_enum.SIPHON_LIFE),
       unstableaffliction = common.skill:new(skill_enum.UNSTABLE_AFFLICTION),
       shadowbolt         = shadowbolt,
@@ -249,6 +220,7 @@ local player_buffs =
       nightfall        = common.buff:new("player", buff_enum.NIGHTFALL),
    }
 
+--TODO: move these functions to a common class
 function player_buffs:update()
    for _, v in pairs(self) do
       if (type(v) == "table") then
@@ -338,7 +310,7 @@ function shadowembrace:cleu(event, timestamp, subevent, _, sourceGUID, sourceNam
     -- SPELL_AURA_REFRESH doesn't seem to be firing for shadow embrace
     -- just track the shadow bolt spell damage
    if ((sourceGUID == UnitGUID("player")) and
-       (spellID == skill_enum.SHADOW_BOLT)) then
+       (spellID == warlock.skill_enum.SHADOW_BOLT)) then
       if (subevent == "SPELL_CAST_SUCCESS") then
 	 self:push(destGUID, timestamp)
       elseif (subevent == "SPELL_DAMAGE") then
@@ -363,11 +335,12 @@ local target_debuffs =
       shadowembrace        = shadowembrace,
       -- pandemic
       agony              = common.pandemicbuff:new("target", buff_enum.AGONY, skill_enum.AGONY),
-      corruption         = common.pandemicbuff:new("target", buff_enum.CORRUPTION, skill_enum.CORRUPTION),
+      corruption         = common.pandemicbuff:new("target", buff_enum.CORRUPTION, warlock.skill_enum.CORRUPTION),
       siphonlife         = common.pandemicbuff:new("target", buff_enum.SIPHON_LIFE, skill_enum.SIPHON_LIFE),
       unstableaffliction = unstableaffliction,
    }
 
+--TODO: move these functions to a common class
 function target_debuffs:update(now)
    for _,debuff in pairs(self) do
       if (type(debuff) == "table") then
@@ -375,7 +348,8 @@ function target_debuffs:update(now)
       end
    end
 end
-    
+
+--TODO: move these functions to a common class 
 function target_debuffs:updatethreshold()
    for k,debuff in pairs(self) do
       if (type(debuff) == "table") then
@@ -446,7 +420,7 @@ function affliction:update(now)
 		       )
 		 )
       ) then
-	 skill = skill_enum.CORRUPTION
+	 skill = warlock.skill_enum.CORRUPTION
       elseif (skills.siphonlife.usable and
 		 target_debuffs.siphonlife.pandemic.active
       ) then
@@ -468,7 +442,7 @@ function affliction:update(now)
       elseif (skills.shadowbolt.usable and
 		 (player_buffs.nightfall.active)
       ) then
-	 skill = skill_enum.SHADOW_BOLT
+	 skill = warlock.skill_enum.SHADOW_BOLT
       elseif (skills.drainsoul.usable and
 		(
 		   skills.drainsoul.execute_phase or
@@ -493,7 +467,7 @@ function affliction:update(now)
 		       )
 		 )
       ) then
-	 skill = skill_enum.SHADOW_BOLT
+	 skill = warlock.skill_enum.SHADOW_BOLT
       elseif (skills.maleficrapture.usable and
 		 (soulshard.current >= 2)
       ) then
@@ -501,7 +475,7 @@ function affliction:update(now)
       elseif (skills.drainsoul.usable) then
 	 skill = skill_enum.DRAIN_SOUL
       elseif(skills.shadowbolt.usable) then
-	 skill = skill_enum.SHADOW_BOLT
+	 skill = warlock.skill_enum.SHADOW_BOLT
       end
    else
       skill = skill_enum.NIL
