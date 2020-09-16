@@ -19,9 +19,14 @@ local buff = {}
 buff.__index = buff
     
 function buff:new(unit, buffID)
-   
+
+   local mask = "HELPFUL|PLAYER"
+   if (unit == "target") then
+      mask = "HARMFUL|PLAYER"
+   end
    local o = {
       unit = unit,
+      mask = mask,
       buffID = buffID,
       active = false,
       count = 0,
@@ -35,7 +40,7 @@ end
 
 function buff:update(now)
    
-   --print(string.format("Update - Unit: %s buffID: %d", self.unit, self.buffID))
+   --print(string.format("Update - unit: %s mask: %s buffID: %d", self.unit, self.mask, self.buffID))
    
    self.active = false
    self.count = 0
@@ -45,14 +50,13 @@ function buff:update(now)
    for ibuff = 1, 40 do
       
       local name, _, count, _, duration, expirationTime, source, _, _, spellID, _, _, castByPlayer
-	 = UnitAura(self.unit, ibuff, "PLAYER")
+	 = UnitAura(self.unit, ibuff, self.mask)
       
       --if (spellID and source) then
       --    print(string.format("unit: %s    spellID: %d    source: %s",
       --    self.unit, spellID, source))
       --end
       
-      -- "PLAYER" filter can pass pets, so check source variable as well
       if (name and (source == "player")) then
 	 
 	 if (spellID == self.buffID) then
@@ -63,7 +67,7 @@ function buff:update(now)
 	    self.remaining = expirationTime - now
 	    
 	    --print(string.format("  found: %d %s %d %5.2f",
-	    --        self.buffID, tostring(self.active), self.count, self.remaining))
+	    --      self.buffID, tostring(self.active), self.count, self.remaining))
 	    
 	    break
 	    
@@ -186,7 +190,7 @@ function multitarget:update(now)
 	 for ibuff = 1, 40 do
 	    
 	    local name, _, count, _, duration, expirationTime, source, _, _, spellID, _, _, castByPlayer
-	       = UnitAura(unit, ibuff, "PLAYER")
+	       = UnitAura(unit, ibuff, "HARMFUL|PLAYER")
 	    
 	    -- "PLAYER" filter can pass pets, so check source variable as well
 	    if (name and (source == "player")) then
@@ -466,6 +470,7 @@ event:register(lastcast, "COMBAT_LOG_EVENT_UNFILTERED", lastcast.cleu)
 local common = data:new(
    "common",
    {
+      playerGUID = "nil",
       gcd = gcd,
       buff = buff,
       pandemicbuff = pandemicbuff,
@@ -489,6 +494,10 @@ function common:broadcasttimer(now)
    if (WeakAuras and WeakAuras.ScanEvents) then
       WeakAuras.ScanEvents("SKILLBAR_CLOCK_TICK", now)
    end
+end
+
+function common:load()
+   self.playerGUID = UnitGUID("player")
 end
 
 function common:update(now)

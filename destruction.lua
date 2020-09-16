@@ -102,7 +102,7 @@ local player_buffs =
       darksoulinstability = common.buff:new("player", buff_enum.DARK_SOUL_INSTABILITY),
    }
 
-function player_buffs:update()
+function player_buffs:update(now)
    for _, v in pairs(self) do
       if (type(v) == "table") then
 	 local buff = v

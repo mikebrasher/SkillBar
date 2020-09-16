@@ -221,7 +221,7 @@ local player_buffs =
    }
 
 --TODO: move these functions to a common class
-function player_buffs:update()
+function player_buffs:update(now)
    for _, v in pairs(self) do
       if (type(v) == "table") then
 	 local buff = v
