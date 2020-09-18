@@ -1,358 +1,68 @@
-local data = SkillBar.data
+local extends = SkillBar.extends
+local iterate = SkillBar.iterate
+local prototype = SkillBar.prototype
 local event = SkillBar.event
 
------------------------ gcd --------------------------
-local gcd =
-   {
-      max = 1.5,
-      current = 1.5,
-   }
-    
-function gcd:update()
-   local haste = UnitSpellHaste("player") / 100.0
-   self.current = 1.5 / (1 + haste)
-end
+-- these are essentially static instances
+-- no singleton pattern, just used that way
 
+----------------------- player --------------------------
+local player = extends(prototype.data)
 
------------------------ buff --------------------------
-local buff = {}
-buff.__index = buff
-    
-function buff:new(unit, buffID)
-
-   local mask = "HELPFUL|PLAYER"
-   if (unit == "target") then
-      mask = "HARMFUL|PLAYER"
-   end
-   local o = {
-      unit = unit,
-      mask = mask,
-      buffID = buffID,
-      active = false,
-      count = 0,
-      expirationTime = 0,
-      remaining = 0,
-   }
-   setmetatable(o, self)
-   return o
-   
-end
-
-function buff:update(now)
-   
-   --print(string.format("Update - unit: %s mask: %s buffID: %d", self.unit, self.mask, self.buffID))
-   
-   self.active = false
-   self.count = 0
-   self.expirationTime = 0
-   self.remaining = 0
-   
-   for ibuff = 1, 40 do
-      
-      local name, _, count, _, duration, expirationTime, source, _, _, spellID, _, _, castByPlayer
-	 = UnitAura(self.unit, ibuff, self.mask)
-      
-      --if (spellID and source) then
-      --    print(string.format("unit: %s    spellID: %d    source: %s",
-      --    self.unit, spellID, source))
-      --end
-      
-      if (name and (source == "player")) then
-	 
-	 if (spellID == self.buffID) then
-	    
-	    self.active = true
-	    self.count = count
-	    self.expirationTime = expirationTime
-	    self.remaining = expirationTime - now
-	    
-	    --print(string.format("  found: %d %s %d %5.2f",
-	    --      self.buffID, tostring(self.active), self.count, self.remaining))
-	    
-	    break
-	    
-	 end
-	 
-      end
-      
-   end
-   
-end
-
-function buff:display(now)
-   return self.expirationTime - now
-end
-
-
------------------------ pandemic buff --------------------------
-local pandemicbuff = {}
-setmetatable(pandemicbuff, buff)
-pandemicbuff.__index = pandemicbuff
-pandemicbuff.__super = getmetatable(pandemicbuff) -- hack to use "super" syntax
-    
-function pandemicbuff:updatethreshold()
-   local desc = GetSpellDescription(self.pandemic.spellID) or ""
-   self.pandemic.duration = tonumber(string.match(desc, 'over (%d*.?%d*) sec')) or -1
-   self.pandemic.threshold = self.pandemic.duration * 0.3
-end
-    
--- buffID is the buff, spellID is the spell that caused the buff
--- might be the same, but probably not
-function pandemicbuff:new(unit, buffID, spellID)
-        
-   -- need to call pandemicBuff.__super.new and not
-   -- self.__super.new to avoid stack overflow
-   local o = pandemicbuff.__super.new(self, unit, buffID)
-   o.pandemic =
+function player:new()
+   local o = player.__super.new(
+      self,
       {
-	 spellID = spellID,
-	 duration = 0,
-	 threshold = 0,
-	 active = false,
-	 soon = false,
+	 guid = "nil",
+	 haste = 0,
       }
-   
-   setmetatable(o, self)
-   o:updatethreshold()
-   
-   return o
-   
-end
-
-function pandemicbuff:update(now)
-   
-   pandemicbuff.__super.update(self, now)
-   
-   if (self.remaining and self.pandemic.threshold) then
-      self.pandemic.active = self.remaining < self.pandemic.threshold
-      self.pandemic.soon   = self.remaining < self.pandemic.threshold + gcd.current
-   else
-      local spellID = self.spellID or -1
-      local remaining = self.remaining or -1
-      local threshold = self.pandemic.threshold or -1
-      print(string.format("spellID: %d remaining: %f threshold: %f", spellID, remaining, threshold))
-   end
-   
-end
-
-
------------------------ target --------------------------
-local target = {}
-target.__index = index
-
-function target:new()
-   local o = 
-      {
-	 count = 0,
-	 expirationTime = 0,
-	 remaining = 0,
-      }
+   )
    setmetatable(o, self)
    return o
 end
 
-
------------------------ multitarget --------------------------
-local multitarget = {}
-multitarget.__index = multitarget
-
-function multitarget:new(buffID)
-   local o = {
-      buffID = buffID,
-      active = false,
-      targets = {},
-      count = 0,
-      minremaining = nil,
-   }
-   setmetatable(o, self)
-   return o
+function player:update(now)
+   --print(string.format("player update: %f", now))
+   player.__super.update(self, now)
+   self.haste = UnitSpellHaste("player")
 end
 
-function multitarget:clear()
-   self.active = false
-   self.targets = {}
-   self.count = 0
-   self.minremaining = nil
-end
-
-function multitarget:update(now)
-
-   self:clear()
-
-   local totalcount = 0
-   for iunit = 1, 40 do
-      
-      local unit = "nameplate" .. iunit
-      
-      -- target debuffs
-      if (UnitExists(unit)) then -- and (not UnitIsEnemy("target", "player"))) then
-	 
-	 for ibuff = 1, 40 do
-	    
-	    local name, _, count, _, duration, expirationTime, source, _, _, spellID, _, _, castByPlayer
-	       = UnitAura(unit, ibuff, "HARMFUL|PLAYER")
-	    
-	    -- "PLAYER" filter can pass pets, so check source variable as well
-	    if (name and (source == "player")) then
-	       
-	       if (spellID == self.buffID) then
-		  
-		  count = (count > 0) and count or 1 -- UnitAura returns 0 for non-stackable auras
-		  
-		  self.targets[unit] = self.targets[unit] or target:new()
-		  local t = self.targets[unit]
-		  t.count = count
-		  t.expirationTime = expirationTime
-		  t.remaining = expirationTime - now
-
-		  totalcount = totalcount + count
-
-		  if ((self.minremaining == nil) or
-			(t.remaining < self.minremaining.remaining)
-		  ) then
-		     self.minremaining = t
-		  end
-		  
-		  break
-		  
-	       end
-	       
-	    end
-	    
-	 end
-	 
-      end
-      
-   end
-
-   self.count = totalcount
-   self.active = totalcount > 0
-   
-end
-
-
------------------------ multi-target debuff --------------------------
-local multitargetdebuff = {}
-setmetatable(multitargetdebuff, buff)
-multitargetdebuff.__index = multitargetdebuff
-multitargetdebuff.__super = getmetatable(multitargetdebuff)
-    
-function multitargetdebuff:new(buffID)
-   
-   local o = multitargetdebuff.__super.new(self, "target", buffID)
-   o.multitarget = multitarget:new(buffID)
-   setmetatable(o, self)
-   return o
-   
-end
-
-function multitargetdebuff:update(now)
-   multitargetdebuff.__super.update(self, now)
-   self.multitarget:update(now)
-end
-
-
------------------------ power --------------------------
-local power =
-   {
-      unit = "player",
-      type = Enum.PowerType.Mana,
-      current = 0,
-      max = 0,
-      deficit = 0,
-      unmodified = false,
-   }
-power.__index = power
-    
-function power:new(type, unmodified)
-   local o =
-      {
-	 type = type,
-	 unmodified = unmodified or false,
-	 
-      }
-   setmetatable(o, self)
-   return o
-end
-
-function power:update()
-   self.current = UnitPower(self.unit, self.type, self.unmodified)
-   self.max = UnitPowerMax(self.unit, self.type, self.unmodified)
-   self.deficit = self.max - self.current
-end
-
-
------------------------ skill --------------------------
-local charges = 
-   {
-      current = 0,
-      max = 0,
-      capped = false,
-   }
-
-function charges:update(name)
-   self.current, self.max = GetSpellCharges(name)
-   self.capped = false
-   if (self.current and self.max) then
-      self.capped = self.current >= self.max
-   end
-end
-
-local skill =
-   {
-      spellID = 0,
-      name = "",
-      charges = charges,
-      cd = 0,
-   }
-skill.__index = skill
-
-function skill:new(spellID)
-   local o =
-      {
-	 spellID = spellID,
-	 name = GetSpellInfo(spellID),
-      }
-   setmetatable(o, self)
-   return o
-end
-
-function skill:update(now)
-   
-   -- need to check by name to respect talents for some reason
-   local usable = IsUsableSpell(self.name)
-   
-   local start, duration, enabled = GetSpellCooldown(self.name)
-   self.cd = 0
-   if (start and duration) then
-      if (start > 0 and duration > 0) then
-	 self.cd = start + duration - now
-      end
-   end
-
-   self.usable = usable and (self.cd <= gcd.current)
-   self.charges:update(self.name)
-   
+function player:load()
+   --print("player load")
+   player.__super.load(self)
+   self.guid = UnitGUID("player")
+   self:update(0)
 end
 
 
 ----------------------- enemies --------------------------
-local enemies =
-   {
-      melee = 0,
-      ranged = 0,
-      target = 
-	 {
-            min = 0,
-            max = 0,
-            near5 = 0,
-            near10 = 0,
-	 },
-      tanking = false,
-   }
+local enemies = extends(prototype.data)
 
-function enemies:update()
+function enemies:new()
+   local o = enemies.__super.new(
+      self,
+      {
+	 melee = 0,
+	 ranged = 0,
+	 target = 
+	    {
+	       min = 0,
+	       max = 0,
+	       near5 = 0,
+	       near10 = 0,
+	    },
+	 tanking = false,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
    
+function enemies:update(now)
+
+   --print(string.format("enemies update: %f", now))
+   enemies.__super.update(self, now)
+
    local target = self.target
    
    target.min = -999
@@ -363,21 +73,21 @@ function enemies:update()
       target.min, target.max = WeakAuras.GetRange("target") or -100, 100
    end
    
-   enemies.melee = 0
-   enemies.ranged = 0
-   enemies.tanking = false
+   self.melee = 0
+   self.ranged = 0
+   self.tanking = false
    for i = 1, 40 do
       local enemy = "nameplate" .. i
       if (UnitExists(enemy) and (not UnitIsFriend(enemy, "player"))) then
 	 
 	 local min, max = WeakAuras.GetRange(enemy) or -100, 100
 	 
-	 if (max <= 5) then
-	    enemies.melee = enemies.melee + 1
+	 if (min <= 5) then
+	    self.melee = self.melee + 1
 	 end
 	 
-	 if (max <= 40) then
-	    enemies.ranged = enemies.ranged + 1
+	 if (min <= 40) then
+	    self.ranged = self.ranged + 1
 	 end
 	 
 	 if ((min >= target.min - 5) and (max <= target.max + 5)) then
@@ -390,7 +100,7 @@ function enemies:update()
 	 
 	 local status = UnitDetailedThreatSituation("player", enemy)
 	 if (status) then
-	    enemies.tanking = true
+	    self.tanking = true
 	 end
       end
    end
@@ -399,43 +109,59 @@ end
 
 
 ----------------------- casting --------------------------
-local casting =
-   {
-      spellID = 0,
-      startTimeMS = 0,
-      endTimeMS = 0,
-      duration = 0,
-      remaining = 0,
-   }
+local casting = extends(prototype.data)
+
+function casting:new()
+   local o = casting.__super.new(
+      self,
+      {
+	 active = false,
+	 spellID = 0,
+	 startTimeMS = 0,
+	 endTimeMS = 0,
+	 duration = 0,
+	 remaining = 0,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
 
 function casting:update(now)
-   
+
+   casting.__super.update(self, now)
+
+   self.active = false
    name, _, _, startTimeMS, endTimeMS, _, _, _, spellID = UnitCastingInfo("player")
    if (spellID and startTimeMS and endTimeMS) then
-      casting.spellID = spellID
-      casting.startTimeMS = startTimeMS
-      casting.endTimeMS = endTimeMS
-      casting.duration = (endTimeMS - startTimeMS) / 1000
-      casting.remaining = endTimeMS / 1000 - now
-   else
-      casting.spellID = 0
-      casting.startTimeMS = 0
-      casting.endTimeMS = 0
-      casting.duration = 0
-      casting.remaining = 0
+      self.active = true
+      self.spellID = spellID
+      self.startTimeMS = startTimeMS
+      self.endTimeMS = endTimeMS
+      self.duration = (endTimeMS - startTimeMS) / 1000
+      self.remaining = endTimeMS / 1000 - now
    end
    
 end
 
 
 ----------------------- lastcast --------------------------
-local lastcast =
-   {
-      active = false,
-      spellID = 0,
-      spellName = "nil",
-      timestamp = 0,
-   }
+local lastcast = extends(prototype.data)
+lastcast.gcd = { max = 0 } -- overwritten in gcd:load()
+
+function lastcast:new()
+   local o = lastcast.__super.new(
+      self,
+      {
+	 active = false,
+	 spellID = 0,
+	 spellName = "nil",
+	 timestamp = 0,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
 
 function lastcast:record(spellID, spellName)
    self.active = true
@@ -449,65 +175,90 @@ function lastcast:duration(now)
 end
     
 function lastcast:update(now)
+
+   --print(string.format("lastcast update: %f %d", now, self.spellID))
+   lastcast.__super.update(self, now)
+   
    local duration = self:duration(now)
-   if (duration > gcd.max) then
+   if (duration > self.gcd.max) then
       self.active = false
    end
+   
 end
 
 function lastcast:cleu(event, timestamp, subevent, _, sourceGUID, _, _, _, _, _, _, _, spellID, spellName)
    --print(string.format("lastcast: %s %s", sourceGUID, subevent))
    if ((sourceGUID == UnitGUID("player")) and
       (subevent == "SPELL_CAST_SUCCESS")) then
-      --print(string.format("spellID = %d", spellID))
+      --print(string.format("lastcast spell success: %d", spellID))
       self:record(spellID, spellName)
    end
 end
-event:register(lastcast, "COMBAT_LOG_EVENT_UNFILTERED", lastcast.cleu)
+
+
+----------------------- gcd --------------------------
+local gcd = extends(prototype.data)
+
+function gcd:new()
+   local o = gcd.__super.new(
+      self,
+      {
+	 max = 1.5,
+	 current = 1.5,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+-- insert self into prototypes that need it.
+-- using self instead of gcd ensures actual
+-- instance ref is used when it's loaded
+function gcd:load()
+   gcd.__super.load(self)
+   prototype.skill.gcd = self
+   prototype.pandemicbuff.gcd = self
+   lastcast.gcd = self
+end
+    
+function gcd:update(now)
+   
+   gcd.__super.update(self, now)
+
+   -- could reference player.haste, but then these would be order dependent
+   local haste = UnitSpellHaste("player") / 100
+   self.current = 1.5 / (1 + haste)
+   
+end
 
 
 ----------------------- common --------------------------
-local common = data:new(
-   "common",
-   {
-      playerGUID = "nil",
-      gcd = gcd,
-      buff = buff,
-      pandemicbuff = pandemicbuff,
-      multitargetdebuff = multitargetdebuff,
-      power = power,
-      skill = skill,
-      timer = timer,
-      enemies = enemies,
-      casting = casting,
-      lastcast = lastcast,
-   }
-)
+local common = extends(prototype.datalist)
 
-function common:broadcastskill(skill)
-   if (WeakAuras and WeakAuras.ScanEvents) then
-      WeakAuras.ScanEvents("SKILLBAR_SKILL_CHANGED", skill)
-   end
+function common:new()
+   local o = common.__super.new(
+      self,
+      {
+	 player = player:new(),
+	 gcd = gcd:new(),
+	 enemies = enemies:new(),
+	 casting = casting:new(),
+	 lastcast = lastcast:new(),
+      }
+   )
+   setmetatable(o, self)
+   return o
 end
 
-function common:broadcasttimer(now)
-   if (WeakAuras and WeakAuras.ScanEvents) then
-      WeakAuras.ScanEvents("SKILLBAR_CLOCK_TICK", now)
-   end
-end
-
+-- event registration needs to happen on instances
 function common:load()
-   self.playerGUID = UnitGUID("player")
-end
 
-function common:update(now)
-   gcd:update()
-   enemies:update()
-   casting:update(now)
-   lastcast:update(now)
-   self:broadcasttimer(now)
+   common.__super.load(self)
+
+   event:register(self.lastcast, "COMBAT_LOG_EVENT_UNFILTERED", self.lastcast.cleu)
+   
 end
 
 
 ----------------------- Skill Bar --------------------------
-SkillBar.common = common
+SkillBar.common = common:new()

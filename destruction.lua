@@ -1,15 +1,8 @@
-local data = SkillBar.data
+local extends = SkillBar.extends
+local broadcast = SkillBar.broadcast
+local prototype = SkillBar.prototype
 local common = SkillBar.common
 local warlock = SkillBar.warlock
-
-local specname = "destruction"
-
-
------------------ spec event ------------------
-local specevent = {}
-function specevent:register(obj, event, func)
-   SkillBar.event:register(obj, event, func, specname)
-end
 
 
 ----------------- skill enum ------------------
@@ -50,132 +43,126 @@ local buff_enum =
 
 
 ----------------- soulshard ------------------
-local soulshard = common.power:new(Enum.PowerType.SoulShards, true)
+local soulshard = prototype.power:new(Enum.PowerType.SoulShards, true)
 
 
 ----------------- talents ------------------
-local talents =
-   {
-      darksoulinstability = { selected = false },
-      eradication = { selected = false },
-      flashover = { selected = false },
-   }
+local talents = extends(prototype.talents)
 
-function talents:update()
+function talents:new()
+   local o = talents.__super.new(
+      self,
+      {
+	 darksoulinstability = { selected = false },
+	 eradication = { selected = false },
+	 flashover = { selected = false },
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function talents:playertalentupdate()
+
+   talents.__super.playertalentupdate(self)
+
    self.darksoulinstability.selected = select(4, GetTalentInfo(7, 3, 1))
    self.eradication.selected = select(4, GetTalentInfo(1, 2, 1))
    self.flashover.selected = select(4, GetTalentInfo(1, 1, 1))
+   
 end
-specevent:register(talents, "PLAYER_TALENT_UPDATE", talents.update)
 
 
 ----------------- skills ------------------
-local skills =
+local skills = prototype.datalist:new(
    {
-      cataclysm           = common.skill:new(skill_enum.CATACLYSM),
-      chaosbolt           = common.skill:new(skill_enum.CHAOS_BOLT),
-      darksoulinstability = common.skill:new(skill_enum.DARK_SOUL_INSTABILITY),
-      havoc               = common.skill:new(skill_enum.HAVOC),
-      immolate            = common.skill:new(skill_enum.IMMOLATE),
-      incinerate          = common.skill:new(skill_enum.INCINERATE),
-      conflagrate         = common.skill:new(skill_enum.CONFLAGRATE),
-      rainoffire          = common.skill:new(skill_enum.RAIN_OF_FIRE),
-      shadowburn          = common.skill:new(skill_enum.SHADOWBURN),
-      soulfire            = common.skill:new(skill_enum.SOUL_FIRE),
-      summoninfernal      = common.skill:new(skill_enum.SUMMON_INFERNAL),
-   }
-    
-function skills:update(now)
-   for _, v in pairs(self) do
-      if (type(v) == "table") then
-	 local skill = v
-	 skill:update(now)
-      end
-   end
-end
-
-
------------------ player buffs ------------------
-local player_buffs =
-   {
-      backdraft           = common.buff:new("player", buff_enum.BACKDRAFT),
-      darksoulinstability = common.buff:new("player", buff_enum.DARK_SOUL_INSTABILITY),
-   }
-
-function player_buffs:update(now)
-   for _, v in pairs(self) do
-      if (type(v) == "table") then
-	 local buff = v
-	 buff:update(now)
-      end
-   end
-end
-
-
------------------ target debuffs ------------------
-local target_debuffs =
-   {
-      -- normal
-      conflagrate = common.buff:new("target", buff_enum.CONFLAGRATE),
-      eradication = common.buff:new("target", buff_enum.ERADICATION),
-      havoc = common.buff:new("target", buff_enum.HAVOC),
-      --havoc = common.multitargetdebuff:new(buff_enum.HAVOC),
-      shadowburn = common.buff:new("target", buff_enum.SHADOWBURN),
-      -- pandemic
-      immolate = common.pandemicbuff:new("target", buff_enum.IMMOLATE, skill_enum.IMMOLATE),
-   }
-
-function target_debuffs:update(now)
-   for _,debuff in pairs(self) do
-      if (type(debuff) == "table") then
-	 debuff:update(now)
-      end
-   end
-end
-    
-function target_debuffs:updatethreshold()
-   for k,debuff in pairs(self) do
-      if (type(debuff) == "table") then
-	 local pandemic = debuff.pandemic
-	 if (pandemic) then
-	    --print(string.format("%s %s", k, tostring(pandemic)))
-	    debuff:updatethreshold()
-	 end
-      end
-   end
-end
---specevent:register(target_debuffs, "PLAYER_REGEN_DISABLED", target_debuffs.updatethreshold)
-specevent:register(target_debuffs, "PLAYER_TALENT_UPDATE", target_debuffs.updatethreshold)
-
-
------------------ destruction ------------------
-local destruction = data:new(
-   specname,
-   {
-      skill = skill_enum.NIL,
-      skill_enum = skill_enum,
-      buff_enum = buff_enum,
-      soulshard = soulshard,
-      talents = talents,
-      skills = skills,
-      player_buffs = player_buffs,
-      target_debuffs = target_debuffs,
+      cataclysm           = prototype.skill:new(skill_enum.CATACLYSM),
+      chaosbolt           = prototype.skill:new(skill_enum.CHAOS_BOLT),
+      darksoulinstability = prototype.skill:new(skill_enum.DARK_SOUL_INSTABILITY),
+      havoc               = prototype.skill:new(skill_enum.HAVOC),
+      immolate            = prototype.skill:new(skill_enum.IMMOLATE),
+      incinerate          = prototype.skill:new(skill_enum.INCINERATE),
+      conflagrate         = prototype.skill:new(skill_enum.CONFLAGRATE),
+      rainoffire          = prototype.skill:new(skill_enum.RAIN_OF_FIRE),
+      shadowburn          = prototype.skill:new(skill_enum.SHADOWBURN),
+      soulfire            = prototype.skill:new(skill_enum.SOUL_FIRE),
+      summoninfernal      = prototype.skill:new(skill_enum.SUMMON_INFERNAL),
    }
 )
 
+
+----------------- player buffs ------------------
+local player_buffs = prototype.datalist:new(
+   {
+      backdraft           = prototype.buff:new("player", buff_enum.BACKDRAFT),
+      darksoulinstability = prototype.buff:new("player", buff_enum.DARK_SOUL_INSTABILITY),
+   }
+)
+
+
+----------------- target debuffs ------------------
+local target_debuffs = prototype.target_debuffs:new(
+   {
+      -- normal
+      conflagrate = prototype.buff:new("target", buff_enum.CONFLAGRATE),
+      eradication = prototype.buff:new("target", buff_enum.ERADICATION),
+      havoc = prototype.buff:new("target", buff_enum.HAVOC),
+      --havoc = prototype.multitargetdebuff:new(buff_enum.HAVOC),
+      shadowburn = prototype.buff:new("target", buff_enum.SHADOWBURN),
+      -- pandemic
+      immolate = prototype.pandemicbuff:new("target", buff_enum.IMMOLATE, skill_enum.IMMOLATE),
+   }
+)
+
+
+----------------- destruction ------------------
+local destruction = extends(prototype.spec)
+
+function destruction:new()
+   local o = destruction.__super.new(
+      self,
+      specname,
+      {
+	 skill = skill_enum.NIL,
+	 skill_enum = skill_enum,
+	 buff_enum = buff_enum,
+	 soulshard = soulshard,
+	 talents = talents,
+	 skills = skills,
+	 player_buffs = player_buffs,
+	 target_debuffs = target_debuffs,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+--function destruction:load()
+--
+--   destruction.__super.load(self)
+--
+--   self:register(self.talents, "PLAYER_TALENT_UPDATE", self.talents.playertalentupdate)
+--   self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", self.target_debuffs.updatethreshold)
+--   
+--end
+
 function destruction:update(now)
+
+   print("destruction update")
+
+   destruction.__super.update(self, now)
 
    local gcd = common.gcd.current
    
    ----- power -----
-   soulshard:update()
+   --soulshard:update(now)
    
    ----- buffs -----
-   player_buffs:update(now)
-   target_debuffs:update(now)
+   --player_buffs:update(now)
+   --target_debuffs:update(now)
     
    ----- skills -----
-   skills:update(now)
+   --skills:update(now)
     
    ----- skill priority -----
    local skill = skill_enum.NIL
@@ -242,11 +229,11 @@ function destruction:update(now)
    
    if (skill ~= self.skill) then
       self.skill = skill
-      common:broadcastskill(skill)
+      broadcast:skill(skill)
    end
 
 end
 
 
 ----------------------- warlock --------------------------
-warlock.destruction = destruction
+warlock.destruction = destruction:new()

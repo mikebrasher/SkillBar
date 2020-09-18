@@ -1,15 +1,8 @@
-local data = SkillBar.data
+local extends = SkillBar.extends
+local broadcast = SkillBar.broadcast
+local prototype = SkillBar.prototype
 local common = SkillBar.common
 local warlock = SkillBar.warlock
-
-local specname = "demonology"
-
-
------------------ spec event ------------------
-local specevent = {}
-function specevent:register(obj, event, func)
-   SkillBar.event:register(obj, event, func, specname)
-end
 
 
 ----------------- skill enum ------------------
@@ -49,96 +42,74 @@ local buff_enum =
 
 
 ----------------- soulshard ------------------
-local soulshard = common.power:new(Enum.PowerType.SoulShards)
+local soulshard = prototype.power:new(Enum.PowerType.SoulShards)
 
 
 ----------------- talents ------------------
-local talents =
-   {
-      --darksoulinstability = { selected = false },
-   }
+local talents = extends(prototype.talents)
 
-function talents:update()
+function talents:new()
+   local o = talents.__super.new(
+      self,
+      {
+	 --darksoulinstability = { selected = false },
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function talents:playertalentupdate()
+   talents.__super.playertalentupdate(self)
    --self.darksoulinstability.selected = select(4, GetTalentInfo(7, 3, 1))
 end
-specevent:register(talents, "PLAYER_TALENT_UPDATE", talents.update)
 
 
 ----------------- skills ------------------
-local skills =
+local skills = prototype.datalist:new(
    {
-      calldreadstalkers   = common.skill:new(skill_enum.CALL_DREADSTALKERS),
-      demonbolt           = common.skill:new(skill_enum.DEMONBOLT),
-      handofguldan        = common.skill:new(skill_enum.HAND_OF_GULDAN),
-      implosion           = common.skill:new(skill_enum.IMPLOSION),
-      shadowbolt          = common.skill:new(warlock.skill_enum.SHADOW_BOLT),
-      summondemonictyrant = common.skill:new(skill_enum.SUMMON_DEMONIC_TYRANT),
-      summonfelguard      = common.skill:new(skill_enum.SUMMON_FELGUARD),
+      bilescourgebombers  = prototype.skill:new(skill_enum.BILESCOURGE_BOMBERS),
+      calldreadstalkers   = prototype.skill:new(skill_enum.CALL_DREADSTALKERS),
+      demonbolt           = prototype.skill:new(skill_enum.DEMONBOLT),
+      demonicstrength     = prototype.skill:new(skill_enum.DEMONIC_STRENGTH),
+      doom                = prototype.skill:new(skill_enum.DOOM),
+      grimoirefelguard    = prototype.skill:new(skill_enum.GRIMOIRE_FELGUARD),
+      handofguldan        = prototype.skill:new(skill_enum.HAND_OF_GULDAN),
+      implosion           = prototype.skill:new(skill_enum.IMPLOSION),
+      netherportal        = prototype.skill:new(skill_enum.NETHER_PORTAL),
+      powersiphon         = prototype.skill:new(skill_enum.POWER_SIPHON),
+      shadowbolt          = prototype.skill:new(warlock.skill_enum.SHADOW_BOLT),
+      soulstrike          = prototype.skill:new(skill_enum.SOUL_STRIKE),
+      summondemonictyrant = prototype.skill:new(skill_enum.SUMMON_DEMONIC_TYRANT),
+      summonfelguard      = prototype.skill:new(skill_enum.SUMMON_FELGUARD),
+      summonvilefiend     = prototype.skill:new(skill_enum.SUMMON_VILEFIEND),
    }
-
---TODO: move these functions to a common class
-function skills:update(now)
-   for _, v in pairs(self) do
-      if (type(v) == "table") then
-	 local skill = v
-	 skill:update(now)
-      end
-   end
-end
+)
 
 
 ----------------- player buffs ------------------
-local player_buffs =
+local player_buffs = prototype.datalist:new(
    {
-      demoniccore = common.buff:new("player", buff_enum.DEMONIC_CORE),
+      demoniccore = prototype.buff:new("player", buff_enum.DEMONIC_CORE),
    }
-
-function player_buffs:update(now)
-   for _, v in pairs(self) do
-      if (type(v) == "table") then
-	 local buff = v
-	 buff:update(now)
-      end
-   end
-end
+)
 
 
 ----------------- target debuffs ------------------
-local target_debuffs =
+local target_debuffs = prototype.target_debuffs:new(
    {
-      fromtheshadows = common.buff:new("target", buff_enum.FROM_THE_SHADOWS),
-   }
+      -- normal
+      fromtheshadows = prototype.buff:new("target", buff_enum.FROM_THE_SHADOWS),
 
---TODO: move these functions to a common class
-function target_debuffs:update(now)
-   for _,debuff in pairs(self) do
-      if (type(debuff) == "table") then
-	 debuff:update(now)
-      end
-   end
-end
-    
-function target_debuffs:updatethreshold()
-   for k,debuff in pairs(self) do
-      if (type(debuff) == "table") then
-	 local pandemic = debuff.pandemic
-	 if (pandemic) then
-	    --print(string.format("%s %s", k, tostring(pandemic)))
-	    debuff:updatethreshold()
-	 end
-      end
-   end
-end
---specevent:register(target_debuffs, "PLAYER_REGEN_DISABLED", target_debuffs.updatethreshold)
-specevent:register(target_debuffs, "PLAYER_TALENT_UPDATE", target_debuffs.updatethreshold)
+      -- dots
+      doom = prototype.pandemicbuff:new("target", buff_enum.DOOM, skill_enum.DOOM),
+   }
+)
 
 
 ----------------- imp ------------------
-local imp =
-   {
-      duration = 20,
-   }
-imp.__index = imp
+local imp = extends(prototype.data)
+imp.duration = 20 -- static
 
 function imp:new(now)
    local o =
@@ -161,20 +132,34 @@ function imp:extend()
 end
 
 function imp:update(now)
+
+   imp.__super.update(self, now)
+   
    self.remaining = self.endtime - now
-   self.active = (self.remaining > 0) and (self.energy > 0)  
+   self.active = (self.remaining > 0) and (self.energy > 0)
+   
 end
 
 
 ----------------- tyrant ------------------
-local tyrant =
-   {
-      timeout = 15,
-      endtime = 0,
-      active = false,
-   }
+local tyrant = extends(prototype.data)
+
+function tyrant:new()
+   local o = tyrant.__super.new(
+      self,
+      {
+	 timeout = 15,
+	 endtime = 0,
+	 active = false,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
 
 function tyrant:update(now)
+   tyrant.__super.update(self, now)
+   --print(string.format("tyrant update: %s %s", tostring(now), tostring(self.endtime)))
    self.active = now < self.endtime
 end
 
@@ -184,16 +169,27 @@ end
 
 
 ----------------- wild imps ------------------
-local wildimps =
-   {
-      count = 0,
-      imps = {},
-      tyrant = tyrant,
-   }
+local wildimps = extends(prototype.data)
+
+function wildimps:new()
+   local o = wildimps.__super.new(
+      self,
+      {
+	 count = 0,
+	 imps = {},
+	 tyrant = tyrant:new(),
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
 
 function wildimps:update(now)
+
+   --print(string.format("wildimps update: %f count = %d", now, self.count))
+   wildimps.__super.update(self, now)
    
-   tyrant:update(now)
+   self.tyrant:update(now)
 
    self.count = 0
    for guid,imp in pairs(self.imps) do
@@ -208,17 +204,17 @@ function wildimps:update(now)
 end
 
 function wildimps:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, _, spellID, spellName)
-   
+
    local now = GetTime()
+   --print(string.format("wildimps cleu: %s %d %s", subevent, spellID, spellName))
    
    -- Imp summoned
+   -- use name since different spellIDs for HoG and Inner Demons
    if ((subevent == "SPELL_SUMMON") and
-	 (sourceGUID == common.playerGUID) and
-	 (
-	    (spellID == skill_enum.WILD_IMP) or
-	       (spellID == skill_enum.INNER_DEMONS)
-	 )
+	 (sourceGUID == common.player.guid) and
+	 (spellName == "Wild Imp")
    ) then
+      --print(string.format("wild imps spell summon: %s", destguid))
       self.imps[destGUID] = imp:new(now)
    elseif (subevent == "SPELL_CAST_SUCCESS") then
       
@@ -227,11 +223,11 @@ function wildimps:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _,
 	    (spellID == skill_enum.FEL_FIREBOLT)
       ) then
 
-	 if (not tyrant.active) then
+	 if (not self.tyrant.active) then
 	    self.imps[sourceGUID]:cast()
 	 end
 	 
-      elseif (sourceGUID == common.playerGUID) then
+      elseif (sourceGUID == common.player.guid) then
 	 
 	 if (spellID == skill_enum.SUMMON_DEMONIC_TYRANT) then
 	    
@@ -240,7 +236,7 @@ function wildimps:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _,
 	       imp:extend()
 	    end
 	    
-	    tyrant:summon(now)
+	    self.tyrant:summon(now)
 	    
 	 elseif (spellID == skill_enum.IMPLOSION) then
 	    -- Remove all imps
@@ -254,41 +250,59 @@ function wildimps:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _,
    end
 
 end
-specevent:register(wildimps, "COMBAT_LOG_EVENT_UNFILTERED", wildimps.cleu)
 
 
 ----------------- demonology ------------------
-local demonology = data:new(
-   specname,
-   {
-      skill = skill_enum.NIL,
-      skill_enum = skill_enum,
-      buff_enum = buff_enum,
-      soulshard = soulshard,
-      talents = talents,
-      skills = skills,
-      player_buffs = player_buffs,
-      target_debuffs = target_debuffs,
-      wildimps = wildimps,
-   }
-)
+local demonology = extends(prototype.spec)
+
+function demonology:new()
+   local o = demonology.__super.new(
+      self,
+      specname,
+      {
+	 skill = skill_enum.NIL,
+	 skill_enum = skill_enum,
+	 buff_enum = buff_enum,
+	 soulshard = soulshard,
+	 talents = talents:new(),
+	 skills = skills,
+	 player_buffs = player_buffs,
+	 target_debuffs = target_debuffs,
+	 wildimps = wildimps:new(),
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function demonology:load()
+   --print("demonology load")
+   demonology.__super.load(self)
+--   self:register(self.talents, "PLAYER_TALENT_UPDATE", self.talents.playertalentupdate)
+--   self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", self.target_debuffs.updatethreshold)
+   self:register(self.wildimps, "COMBAT_LOG_EVENT_UNFILTERED", self.wildimps.cleu)
+end
 
 function demonology:update(now)
 
+   --print(string.format("demonology update: %f", now))
+   demonology.__super.update(self, now)
+
    local gcd = common.gcd.current
+   local wildimps = self.wildimps
    
    ----- power -----
-   soulshard:update()
+   --soulshard:update()
    
    ----- buffs -----
-   player_buffs:update(now)
-   target_debuffs:update(now)
+   --player_buffs:update(now)
+   --target_debuffs:update(now)
 
    ----- wild imps -----
-   wildimps:update(now)
+   --wildimps:update(now)
     
    ----- skills -----
-   skills:update(now)
+   --skills:update(now)
     
    ----- skill priority -----
    local skill = skill_enum.NIL
@@ -296,14 +310,36 @@ function demonology:update(now)
    local enemies = common.enemies.target.near10
 
    if (InCombatLockdown()) then
-      if (skills.calldreadstalkers.usable) then
+      if (skills.doom.usable and
+	     target_debuffs.doom.pandemic.active
+      ) then
+	 skill = skill_enum.DOOM
+      elseif (skills.summonvilefiend.usable) then
+	    skill = skill_enum.SUMMON_VILEFIEND
+      elseif (skills.bilescourgebombers.usable) then
+	 skill = skill_enum.BILESCOURGE_BOMBERS
+      elseif (skills.calldreadstalkers.usable) then
 	 skill = skill_enum.CALL_DREADSTALKERS
       elseif (skills.handofguldan.usable and
 		 (soulshard.current >= 4)
       ) then
 	 skill = skill_enum.HAND_OF_GULDAN
+      elseif (skills.soulstrike.usable and
+		 (soulshard.deficit >= 1)
+      ) then
+	 skill = skill_enum.SOUL_STRIKE
       elseif (skills.demonbolt.usable and
-		 (player_buffs.demoniccore.count >= 2)
+		 (
+		    (soulshard.deficit >= 2) and
+		       (
+			  (player_buffs.demoniccore.count >= 2) or
+			     (
+				(player_buffs.demoniccore.count >= 1) and
+				   (player_buffs.demoniccore.remaining < 3)
+			     )
+		       )
+
+		 )
       ) then
 	 skill = skill_enum.DEMONBOLT
       elseif (skills.implosion.usable and
@@ -324,11 +360,11 @@ function demonology:update(now)
    
    if (skill ~= self.skill) then
       self.skill = skill
-      common:broadcastskill(skill)
+      broadcast:skill(skill)
    end
 
 end
 
 
 ----------------------- warlock --------------------------
-warlock.demonology = demonology
+warlock.demonology = demonology:new()

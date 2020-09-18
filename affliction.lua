@@ -1,15 +1,8 @@
-local data = SkillBar.data
+local extends = SkillBar.extends
+local broadcast = SkillBar.broadcast
+local prototype = SkillBar.prototype
 local common = SkillBar.common
 local warlock = SkillBar.warlock
-
-local specname = "affliction"
-
-
------------------ spec event ------------------
-local specevent = {}
-function specevent:register(obj, event, func)
-   SkillBar.event:register(obj, event, func, specname)
-end
 
 
 ----------------- skill enum ------------------
@@ -53,39 +46,58 @@ local buff_enum =
 
 
 ----------------- soulshard ------------------
-local soulshard = common.power:new(Enum.PowerType.SoulShards)
+local soulshard = prototype.power:new(Enum.PowerType.SoulShards)
 
 
 ----------------- talents ------------------
-local talents =
-   {
-      absolutecorruption = { selected = false },
-      creepingdeath = { selected = false },
-      drainsoul = { selected = false },
-   }
+local talents = extends(prototype.talents)
 
-function talents:update()
+function talents:new()
+   local o = talents.__super.new(
+      self,
+      {
+	 absolutecorruption = { selected = false },
+	 creepingdeath = { selected = false },
+	 drainsoul = { selected = false },
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function talents:playertalentupdate()
+   
+   talents.__super.playertalentupdate(self)
+
    self.absolutecorruption.selected = select(4, GetTalentInfo(2, 2, 1))
    self.creepingdeath.selected = select(4, GetTalentInfo(7, 2, 1))
    self.drainsoul.selected = select(4, GetTalentInfo(1, 3, 1))
+   
 end
-specevent:register(talents, "PLAYER_TALENT_UPDATE", talents.update)
 
 
 ----------------- malefic ------------------
-local malefic =
-   {
-      active = false,
-      count = 0,
-      agony = 0,
-      corruption = 0,
-      siphonlife = 0,
-      unstableaffliction = 0,
-      viletaint = 0,
-      phantomsingularity = 0,
-      impendingcatastrophe = 0,
-   }
-    
+local malefic = extends(prototype.data)
+
+function malefic:new()
+   local o = malefic.__super.new(
+      self,
+      {
+	 active = false,
+	 count = 0,
+	 agony = 0,
+	 corruption = 0,
+	 siphonlife = 0,
+	 unstableaffliction = 0,
+	 viletaint = 0,
+	 phantomsingularity = 0,
+	 impendingcatastrophe = 0,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
 function malefic:clear()
    self.active = false
    self.count = 0
@@ -98,7 +110,9 @@ function malefic:clear()
    self.impendingcatastrophe = 0
 end
 
-function malefic:update()
+function malefic:update(now)
+
+   malefic.__super.update(self, now)
    
    self:clear()
    
@@ -153,12 +167,17 @@ end
 
 
 ----------------- shadow bolt ------------------
-local shadowbolt = common.skill:new(warlock.skill_enum.SHADOW_BOLT)
-setmetatable(shadowbolt, common.skill)
+local shadowbolt = extends(prototype.skill)
+
+function shadowbolt:new()
+   local o = shadowbolt.__super.new(self, warlock.skill_enum.SHADOW_BOLT)
+   setmetatable(o, self)
+   return o
+end
     
 function shadowbolt:update(now)
    
-   common.skill.update(self, now)
+   shadowbolt.__super.update(self, now)
    
    -- shadowbolt is always usable
    -- so check talent choice
@@ -168,13 +187,18 @@ end
 
 
 ----------------- drain soul ------------------
-local drainsoul = common.skill:new(skill_enum.DRAIN_SOUL)
-drainsoul.execute_phase = false
-setmetatable(drainsoul, common.skill)
+local drainsoul = extends(prototype.skill)
+
+function drainsoul:new()
+   local o = drainsoul.__super.new(self, skill_enum.DRAIN_SOUL)
+   o.execute_phase = false
+   setmetatable(o, self)
+   return o
+end
 
 function drainsoul:update(now)
    
-   common.skill.update(self, now)
+   drainsoul.__super.update(self, now)
    
    local execute_health = 0.2
    local target_health = 1
@@ -190,55 +214,43 @@ end
 
 
 ----------------- skills ------------------
-local skills =
+local skills = prototype.datalist:new(
    {
-      agony              = common.skill:new(skill_enum.AGONY),
-      corruption         = common.skill:new(warlock.skill_enum.CORRUPTION),
-      siphonlife         = common.skill:new(skill_enum.SIPHON_LIFE),
-      unstableaffliction = common.skill:new(skill_enum.UNSTABLE_AFFLICTION),
-      shadowbolt         = shadowbolt,
-      drainsoul          = drainsoul,
-      haunt              = common.skill:new(skill_enum.HAUNT),
-      maleficrapture     = common.skill:new(skill_enum.MALEFIC_RAPTURE),
+      agony              = prototype.skill:new(skill_enum.AGONY),
+      corruption         = prototype.skill:new(warlock.skill_enum.CORRUPTION),
+      drainsoul          = drainsoul:new(),
+      haunt              = prototype.skill:new(skill_enum.HAUNT),
+      maleficrapture     = prototype.skill:new(skill_enum.MALEFIC_RAPTURE),
+      shadowbolt         = shadowbolt:new(),
+      siphonlife         = prototype.skill:new(skill_enum.SIPHON_LIFE),
+      unstableaffliction = prototype.skill:new(skill_enum.UNSTABLE_AFFLICTION),
    }
-    
-function skills:update(now)
-   for _, v in pairs(self) do
-      if (type(v) == "table") then
-	 local skill = v
-	 skill:update(now)
-      end
-   end
-end
+)
 
 
 ----------------- player buffs ------------------
-local player_buffs =
+local player_buffs = prototype.datalist:new(
    {
-      darksoulmisery   = common.buff:new("player", buff_enum.DARK_SOUL_MISERY),
-      inevitabledemise = common.buff:new("player", buff_enum.INEVITABLE_DEMISE),
-      nightfall        = common.buff:new("player", buff_enum.NIGHTFALL),
+      darksoulmisery   = prototype.buff:new("player", buff_enum.DARK_SOUL_MISERY),
+      inevitabledemise = prototype.buff:new("player", buff_enum.INEVITABLE_DEMISE),
+      nightfall        = prototype.buff:new("player", buff_enum.NIGHTFALL),
    }
+)
 
---TODO: move these functions to a common class
-function player_buffs:update(now)
-   for _, v in pairs(self) do
-      if (type(v) == "table") then
-	 local buff = v
-	 buff:update(now)
-      end
-   end
-end
-    
 
 ----------------- unstable affliction ------------------
-local unstableaffliction = common.pandemicbuff:new("target", buff_enum.UNSTABLE_AFFLICTION, skill_enum.UNSTABLE_AFFLICTION)
-unstableaffliction.other = false
-setmetatable(unstableaffliction, common.pandemicbuff)
-    
+local unstableaffliction = extends(prototype.pandemicbuff)
+
+function unstableaffliction:new()
+   local o = unstableaffliction.__super.new(self, "target", buff_enum.UNSTABLE_AFFLICTION, skill_enum.UNSTABLE_AFFLICTION)
+   o.other = false
+   setmetatable(o, self)
+   return o
+end
+
 function unstableaffliction:update(now)
    
-   common.pandemicbuff.update(self, now)
+   unstableaffliction.__super.update(self, now)
    
    -- is unstable affliction out on some other target?
    local count = malefic.unstableaffliction or 0
@@ -248,12 +260,23 @@ end
 
 
 ----------------- shadow embrace ------------------
-local shadowembrace = common.buff:new("target", buff_enum.SHADOW_EMBRACE)
-shadowembrace.known = IsSpellKnown(skill_enum.SHADOW_EMBRACE)
-shadowembrace.max = 3
-shadowembrace.actual = 0
-shadowembrace.expected = 0
-shadowembrace.shadowbolt = {}
+local shadowembrace = extends(prototype.buff)
+
+function shadowembrace:new()
+   local o = shadowembrace.__super.new(self, "target", buff_enum.SHADOW_EMBRACE)
+   o.known = false
+   o.max = 3
+   o.actual = 0
+   o.expected = 0
+   o.shadowbolt = {}
+   setmetatable(o, self)
+   return o
+end
+
+function shadowembrace:load()
+   shadowembrace.__super.load(self)
+   self.known = IsSpellKnown(skill_enum.SHADOW_EMBRACE)
+end
 
 function shadowembrace:clear(guid)
    self.shadowbolt[guid] = nil
@@ -285,22 +308,24 @@ function shadowembrace:update(now)
       return
    end
         
-   common.buff.update(self, now)
+   shadowembrace.__super.update(self, now)
    
    self.actual = self.count
    self.expected = 0
    
    if (UnitExists("target") and (not talents.drainsoul.selected)) then
+      
       local targetGUID = UnitGUID("target")
       local queue = self.shadowbolt[targetGUID]
       if (queue) then
 	 self.expected = table.getn(queue)
       end
-   end
    
-   self.count = self.actual + self.expected
-   if (self.count > self.max) then
-      self.count = self.max
+      self.count = self.actual + self.expected
+      if (self.count > self.max) then
+	 self.count = self.max
+      end
+      
    end
    
 end
@@ -309,7 +334,7 @@ function shadowembrace:cleu(event, timestamp, subevent, _, sourceGUID, sourceNam
 
     -- SPELL_AURA_REFRESH doesn't seem to be firing for shadow embrace
     -- just track the shadow bolt spell damage
-   if ((sourceGUID == UnitGUID("player")) and
+   if ((sourceGUID == common.player.guid) and
        (spellID == warlock.skill_enum.SHADOW_BOLT)) then
       if (subevent == "SPELL_CAST_SUCCESS") then
 	 self:push(destGUID, timestamp)
@@ -321,82 +346,78 @@ function shadowembrace:cleu(event, timestamp, subevent, _, sourceGUID, sourceNam
    end
    
 end
-specevent:register(shadowembrace, "COMBAT_LOG_EVENT_UNFILTERED", shadowembrace.cleu)
 
 
 ----------------- target debuffs ------------------
-local target_debuffs =
+local target_debuffs = prototype.target_debuffs:new(
    {
       -- normal
-      haunt                = common.buff:new("target", buff_enum.HAUNT),
-      viletaint            = common.buff:new("target", buff_enum.VILE_TAINT),
-      phantomsingularity   = common.buff:new("target", buff_enum.PHANTOM_SINGULARITY),
-      impendingcatastrophe = common.buff:new("target", buff_enum.IMPENDING_CATASTROPHE),
-      shadowembrace        = shadowembrace,
+      haunt                = prototype.buff:new("target", buff_enum.HAUNT),
+      viletaint            = prototype.buff:new("target", buff_enum.VILE_TAINT),
+      phantomsingularity   = prototype.buff:new("target", buff_enum.PHANTOM_SINGULARITY),
+      impendingcatastrophe = prototype.buff:new("target", buff_enum.IMPENDING_CATASTROPHE),
+      shadowembrace        = shadowembrace:new(),
       -- pandemic
-      agony              = common.pandemicbuff:new("target", buff_enum.AGONY, skill_enum.AGONY),
-      corruption         = common.pandemicbuff:new("target", buff_enum.CORRUPTION, warlock.skill_enum.CORRUPTION),
-      siphonlife         = common.pandemicbuff:new("target", buff_enum.SIPHON_LIFE, skill_enum.SIPHON_LIFE),
-      unstableaffliction = unstableaffliction,
-   }
-
---TODO: move these functions to a common class
-function target_debuffs:update(now)
-   for _,debuff in pairs(self) do
-      if (type(debuff) == "table") then
-	 debuff:update(now)
-      end
-   end
-end
-
---TODO: move these functions to a common class 
-function target_debuffs:updatethreshold()
-   for k,debuff in pairs(self) do
-      if (type(debuff) == "table") then
-	 local pandemic = debuff.pandemic
-	 if (pandemic) then
-	    --print(string.format("%s %s", k, tostring(pandemic)))
-	    debuff:updatethreshold()
-	 end
-      end
-   end
-end
---specevent:register(target_debuffs, "PLAYER_REGEN_DISABLED", target_debuffs.updatethreshold)
-specevent:register(target_debuffs, "PLAYER_TALENT_UPDATE", target_debuffs.updatethreshold)
-
-
------------------ affliction ------------------
-local affliction = data:new(
-   specname,
-   {
-      skill = skill_enum.NIL,
-      skill_enum = skill_enum,
-      buff_enum = buff_enum,
-      soulshard = soulshard,
-      talents = talents,
-      malefic = malefic,
-      skills = skills,
-      player_buffs = player_buffs,
-      target_debuffs = target_debuffs,
+      agony              = prototype.pandemicbuff:new("target", buff_enum.AGONY, skill_enum.AGONY),
+      corruption         = prototype.pandemicbuff:new("target", buff_enum.CORRUPTION, warlock.skill_enum.CORRUPTION),
+      siphonlife         = prototype.pandemicbuff:new("target", buff_enum.SIPHON_LIFE, skill_enum.SIPHON_LIFE),
+      unstableaffliction = unstableaffliction:new(),
    }
 )
 
+
+----------------- affliction ------------------
+local affliction = extends(prototype.spec)
+
+function affliction:new()
+   local o = affliction.__super.new(
+      self,
+      "affliction",
+      {
+	 skill = skill_enum.NIL,
+	 skill_enum = skill_enum,
+	 buff_enum = buff_enum,
+	 soulshard = soulshard,
+	 talents = talents:new(),
+	 malefic = malefic:new(),
+	 skills = skills,
+	 player_buffs = player_buffs,
+	 target_debuffs = target_debuffs,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function affliction:load()
+
+   affliction.__super.load(self)
+
+   --self:register(self.talents, "PLAYER_TALENT_UPDATE", talents.playertalentupdate)
+   --self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", target_debuffs.updatethreshold)
+   self:register(self.target_debuffs.shadowembrace, "COMBAT_LOG_EVENT_UNFILTERED", self.target_debuffs.shadowembrace.cleu)
+   
+end
+
 function affliction:update(now)
 
+   affliction.__super.update(self, now)
+   
    local gcd = common.gcd.current
+   local malefic = self.malefic
    
    ----- power -----
-   soulshard:update()
+   --soulshard:update()
    
    ----- buffs -----
-   player_buffs:update(now)
-   target_debuffs:update(now)
-    
+   --player_buffs:update(now)
+   --target_debuffs:update(now)
+   
    ----- malefic -----
-   malefic:update()
+   --malefic:update()
     
    ----- skills -----
-   skills:update(now)
+   --skills:update(now)
     
    ----- skill priority -----
    local skill = skill_enum.NIL
@@ -483,11 +504,11 @@ function affliction:update(now)
    
    if (skill ~= self.skill) then
       self.skill = skill
-      common:broadcastskill(skill)
+      broadcast:skill(skill)
    end
    
 end
 
 
 ----------------------- warlock --------------------------
-warlock.affliction = affliction
+warlock.affliction = affliction:new()

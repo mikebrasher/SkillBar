@@ -1,5 +1,5 @@
-local data = SkillBar.data
 local event = SkillBar.event
+local prototype = SkillBar.prototype
 local common = SkillBar.common
 
 
@@ -60,26 +60,39 @@ local skill_enum =
 
 
 ----------------------- mana --------------------------
-local mana = common.power:new(Enum.PowerType.Mana)
+local mana = prototype.power:new(Enum.PowerType.Mana)
 
 
 ----------------------- warlock --------------------------
-local warlock = data:new(
-   "warlock",
+local name = "warlock"
+
+local specs = 
    {
-      specs =
-	 {
-	    "affliction",
-	    "demonology",
-	    "destruction",
-	 },
+      "affliction",
+      "demonology",
+      "destruction",
+   }
+
+local warlock = prototype.class:new(
+   name,
+   specs,
+   {
       skill_enum = skill_enum,
       mana = mana,
    }
 )
 
+-- manually load/update here to avoid loading/updating specs once they've been inserted
+function warlock:load()
+   --print("warlock load")
+   warlock.__super.load(self)
+   self.mana:load()
+end
+
 function warlock:update(now)
-   mana:update()
+   --print(string.format("warlock update: %f", now))
+   warlock.__super.update(self, now)
+   self.mana:update(now)
 end
 
 
