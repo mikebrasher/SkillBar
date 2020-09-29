@@ -50,53 +50,35 @@ local soulshard = prototype.power:new(Enum.PowerType.SoulShards)
 
 
 ----------------- talents ------------------
-local talents = extends(prototype.talents)
-
-function talents:new()
-   local o = talents.__super.new(
-      self,
-      {
-	 absolutecorruption = { selected = false },
-	 creepingdeath = { selected = false },
-	 drainsoul = { selected = false },
-      }
-   )
-   setmetatable(o, self)
-   return o
-end
+local talents = prototype.data:new(
+   {
+      absolutecorruption = { selected = false },
+      creepingdeath = { selected = false },
+      drainsoul = { selected = false },
+   }
+)
 
 function talents:playertalentupdate()
-   
-   talents.__super.playertalentupdate(self)
-
    self.absolutecorruption.selected = select(4, GetTalentInfo(2, 2, 1))
    self.creepingdeath.selected = select(4, GetTalentInfo(7, 2, 1))
    self.drainsoul.selected = select(4, GetTalentInfo(1, 3, 1))
-   
 end
 
 
 ----------------- malefic ------------------
-local malefic = extends(prototype.data)
-
-function malefic:new()
-   local o = malefic.__super.new(
-      self,
-      {
-	 active = false,
-	 count = 0,
-	 agony = 0,
-	 corruption = 0,
-	 siphonlife = 0,
-	 unstableaffliction = 0,
-	 viletaint = 0,
-	 phantomsingularity = 0,
-	 impendingcatastrophe = 0,
-      }
-   )
-   setmetatable(o, self)
-   return o
-end
+local malefic = prototype.data:new(
+   {
+      active = false,
+      count = 0,
+      agony = 0,
+      corruption = 0,
+      siphonlife = 0,
+      unstableaffliction = 0,
+      viletaint = 0,
+      phantomsingularity = 0,
+      impendingcatastrophe = 0,
+   }
+)
 
 function malefic:clear()
    self.active = false
@@ -112,7 +94,7 @@ end
 
 function malefic:update(now)
 
-   malefic.__super.update(self, now)
+   --print(string.format("malefic update: %s", now))
    
    self:clear()
    
@@ -122,13 +104,19 @@ function malefic:update(now)
       
       -- target debuffs
       if (UnitExists(unit)) then -- and (not UnitIsEnemy("target", "player"))) then
+
+	 --print(string.format("  unit: %s", unit))
 	 
 	 for ibuff = 1, 40 do
 	    
 	    local name, _, count, _, duration, expirationTime, unitCaster, _, _, spellID
 	       = UnitAura(unit, ibuff, "HARMFUL")
+
+	    --if (name) then
+	    --   print(string.format("    spellID: %d, name = %s", name, spellID))
+	    --end
 	    
-	    if (unitCaster == "player") then             
+	    if (unitCaster == "player") then
 	       if (spellID == 980) then -- Agony
 		  self.agony = self.agony + 1   
 	       elseif (spellID == 146739) then -- Corruption
@@ -378,8 +366,8 @@ function affliction:new()
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
 	 soulshard = soulshard,
-	 talents = talents:new(),
-	 malefic = malefic:new(),
+	 talents = talents,
+	 malefic = malefic,
 	 skills = skills,
 	 player_buffs = player_buffs,
 	 target_debuffs = target_debuffs,
@@ -404,7 +392,6 @@ function affliction:update(now)
    affliction.__super.update(self, now)
    
    local gcd = common.gcd.current
-   local malefic = self.malefic
    
    ----- power -----
    --soulshard:update()

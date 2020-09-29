@@ -4,6 +4,8 @@ local event = SkillBar.event
 local prototype = SkillBar.prototype
 local common = SkillBar.common
 
+local skillbar_color = "FF8D1428"
+
 
 ----------------------- class --------------------------
 -- driver version of class, different from prototype.class
@@ -56,7 +58,7 @@ function class:load()
       self.data = data
       self.data:load()
    else
-      print(string.format("SkillBar: unsupported class %s", self.name))
+      print(string.format("|c%sSkillBar:|r unsupported class %s", skillbar_color, self.name))
    end
    
 end
@@ -207,10 +209,10 @@ function spec:load(class)
 	 self.data:load()
 
 	 class:activate(self.name)
-	 print(string.format("|cFF8D1428SkillBar:|r loaded %s", self.name))
+	 print(string.format("|c%sSkillBar:|r loaded %s", skillbar_color, self.name))
 	 
       else
-	 print(string.format("|cFF8D1428SkillBar:|r unsupported spec %s", self.name))
+	 print(string.format("|c%sSkillBar:|r unsupported spec %s", skillbar_color, self.name))
       end
       
    end

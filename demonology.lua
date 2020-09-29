@@ -46,21 +46,13 @@ local soulshard = prototype.power:new(Enum.PowerType.SoulShards)
 
 
 ----------------- talents ------------------
-local talents = extends(prototype.talents)
-
-function talents:new()
-   local o = talents.__super.new(
-      self,
-      {
-	 --darksoulinstability = { selected = false },
-      }
-   )
-   setmetatable(o, self)
-   return o
-end
+local talents = prototype.data:new(
+   {
+      --darksoulinstability = { selected = false },
+   }
+)
 
 function talents:playertalentupdate()
-   talents.__super.playertalentupdate(self)
    --self.darksoulinstability.selected = select(4, GetTalentInfo(7, 3, 1))
 end
 
@@ -169,25 +161,17 @@ end
 
 
 ----------------- wild imps ------------------
-local wildimps = extends(prototype.data)
-
-function wildimps:new()
-   local o = wildimps.__super.new(
-      self,
-      {
-	 count = 0,
-	 imps = {},
-	 tyrant = tyrant:new(),
-      }
-   )
-   setmetatable(o, self)
-   return o
-end
+local wildimps = prototype.data:new(
+   {
+      count = 0,
+      imps = {},
+      tyrant = tyrant:new(),
+   }
+)
 
 function wildimps:update(now)
 
    --print(string.format("wildimps update: %f count = %d", now, self.count))
-   wildimps.__super.update(self, now)
    
    self.tyrant:update(now)
 
@@ -207,6 +191,8 @@ function wildimps:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _,
 
    local now = GetTime()
    --print(string.format("wildimps cleu: %s %d %s", subevent, spellID, spellName))
+
+   -- TODO: deal with power siphon
    
    -- Imp summoned
    -- use name since different spellIDs for HoG and Inner Demons
@@ -264,11 +250,11 @@ function demonology:new()
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
 	 soulshard = soulshard,
-	 talents = talents:new(),
+	 talents = talents,
 	 skills = skills,
 	 player_buffs = player_buffs,
 	 target_debuffs = target_debuffs,
-	 wildimps = wildimps:new(),
+	 wildimps = wildimps,
       }
    )
    setmetatable(o, self)
@@ -335,7 +321,7 @@ function demonology:update(now)
 			  (player_buffs.demoniccore.count >= 2) or
 			     (
 				(player_buffs.demoniccore.count >= 1) and
-				   (player_buffs.demoniccore.remaining < 3)
+				   (player_buffs.demoniccore.remaining < 5)
 			     )
 		       )
 

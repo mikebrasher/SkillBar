@@ -104,20 +104,6 @@ function spec:load()
 
 end
 
------------------ talents ------------------
-local talents = extends(data)
-
-function talents:new(obj)
-   local o = talents.__super.new(self, obj)
-   setmetatable(o, self)
-   return o
-end
-
--- override this for each instance and register that event with PLAYER_TALENT_UPDATE
-function talents:playertalentupdate()
-   -- stub
-end
-
 
 ----------------------- buff --------------------------
 local buff = extends(data)

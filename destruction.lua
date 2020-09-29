@@ -47,29 +47,18 @@ local soulshard = prototype.power:new(Enum.PowerType.SoulShards, true)
 
 
 ----------------- talents ------------------
-local talents = extends(prototype.talents)
-
-function talents:new()
-   local o = talents.__super.new(
-      self,
-      {
-	 darksoulinstability = { selected = false },
-	 eradication = { selected = false },
-	 flashover = { selected = false },
-      }
-   )
-   setmetatable(o, self)
-   return o
-end
+local talents = prototype.data:new(
+   {
+      darksoulinstability = { selected = false },
+      eradication = { selected = false },
+      flashover = { selected = false },
+   }
+)
 
 function talents:playertalentupdate()
-
-   talents.__super.playertalentupdate(self)
-
    self.darksoulinstability.selected = select(4, GetTalentInfo(7, 3, 1))
    self.eradication.selected = select(4, GetTalentInfo(1, 2, 1))
    self.flashover.selected = select(4, GetTalentInfo(1, 1, 1))
-   
 end
 
 
@@ -148,7 +137,7 @@ end
 
 function destruction:update(now)
 
-   print("destruction update")
+   --print("destruction update")
 
    destruction.__super.update(self, now)
 
