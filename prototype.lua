@@ -81,7 +81,7 @@ local spec = extends(datalist)
 
 function spec:new(name, obj)
    local o = spec.__super.new(self, obj)
-   o.name = name
+   o.name = name or "nil"
    setmetatable(o, self)
    return o
 end
@@ -98,8 +98,13 @@ function spec:load()
       self:register(self.talents, "PLAYER_TALENT_UPDATE", self.talents.playertalentupdate)
    end
 
+   if (self.player_buffs and self.player_buffs.updatethreshold) then
+      self:register(self.player_buffs, "PLAYER_REGEN_DISABLED", self.player_buffs.updatethreshold)
+   end
+
    if (self.target_debuffs and self.target_debuffs.updatethreshold) then
-      self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", self.target_debuffs.updatethreshold)
+      --self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", self.target_debuffs.updatethreshold)
+      self:register(self.target_debuffs, "PLAYER_REGEN_DISABLED", self.target_debuffs.updatethreshold)
    end
 
 end
@@ -108,17 +113,18 @@ end
 ----------------------- buff --------------------------
 local buff = extends(data)
 
-function buff:new(unit, buffID)
+function buff:new(unit, buffID, mask)
    local o = buff.__super.new(
       self,
       {
 	 unit = unit,
-	 mask = nil,
 	 buffID = buffID,
+	 mask = mask,
 	 active = false,
 	 count = 0,
 	 expirationTime = 0,
 	 remaining = 0,
+	 extra = nil,
       }
    )
    setmetatable(o, self)
@@ -127,10 +133,16 @@ end
 
 function buff:load()
    buff.__super.load(self)
-   self.mask = "HELPFUL|PLAYER"
-   if (self.unit == "target") then
-      self.mask = "HARMFUL|PLAYER"
+
+   -- default behavior is player buff, target debuff
+   -- but don't override mask if supplied
+   if (self.mask == nil) then
+      self.mask = "HELPFUL|PLAYER"
+      if (self.unit == "target") then
+	 self.mask = "HARMFUL|PLAYER"
+      end
    end
+   
 end
 
 function buff:update(now)
@@ -143,10 +155,11 @@ function buff:update(now)
    self.count = 0
    self.expirationTime = 0
    self.remaining = 0
+   self.extra = nil
    
    for ibuff = 1, 40 do
       
-      local name, _, count, _, duration, expirationTime, source, _, _, spellID, _, _, castByPlayer
+      local name, _, count, _, duration, expirationTime, source, _, _, spellID, _, _, castByPlayer, extra1, extra2, extra3
 	 = UnitAura(self.unit, ibuff, self.mask)
       
       --if (spellID and source) then
@@ -162,6 +175,7 @@ function buff:update(now)
 	    self.count = count
 	    self.expirationTime = expirationTime
 	    self.remaining = expirationTime - now
+	    self.extra = { extra1, extra2, extra3 }
 	    
 	    --print(string.format("  found: %d %s %d %5.2f",
 	    --      self.buffID, tostring(self.active), self.count, self.remaining))
@@ -178,6 +192,21 @@ end
 
 function buff:display(now)
    return self.expirationTime - now
+end
+
+
+----------------------- buff list --------------------------
+local bufflist = extends(datalist)
+
+function bufflist:new(obj)
+   local o = bufflist.__super.new(self, obj)
+   setmetatable(o, self)
+   return o
+end
+
+
+function bufflist:updatethreshold()
+   iterate(self, "updatethreshold")
 end
 
 
@@ -346,20 +375,6 @@ function multitargetdebuff:update(now)
 end
 
 
------------------ target_debuffs ------------------
-local target_debuffs = extends(datalist)
-
-function target_debuffs:new(obj)
-   local o = target_debuffs.__super.new(self, obj)
-   setmetatable(o, self)
-   return o
-end
-
-function target_debuffs:updatethreshold()
-   iterate(self, "updatethreshold")
-end
-
-
 ----------------------- power --------------------------
 local power = extends(data)
 
@@ -434,7 +449,8 @@ function skill:update(now)
 
    -- need to check by name to respect talents for some reason
    local usable = IsUsableSpell(self.name)
-   
+
+   --print(string.format("skill:update(%s): %f", self.name, now))
    local start, duration, enabled = GetSpellCooldown(self.name)
    self.cd = 0
    if (start and duration) then
@@ -450,6 +466,41 @@ function skill:update(now)
 end
 
 
+----------------------- talent --------------------------
+local talent = extends(data)
+
+function talent:new(row, col)
+   local o = talent.__super.new(
+      self,
+      {
+	 row = row,
+	 col = col,
+	 selected = false,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function talent:gettalentinfo()
+   self.selected = select(4, GetTalentInfo(self.row, self.col, 1))
+end
+
+
+----------------------- talentlist --------------------------
+local talentlist = extends(datalist)
+
+function talentlist:new(obj)
+   local o = talentlist.__super.new(self, obj)
+   setmetatable(o, self)
+   return o
+end
+
+function talentlist:playertalentupdate()
+   iterate(self, "gettalentinfo")
+end
+
+
 ----------------------- prototype --------------------------
 local prototype =
    {
@@ -457,13 +508,14 @@ local prototype =
       datalist = datalist,
       class = class,
       spec = spec,
-      talents = talents,
       buff = buff,
+      bufflist = bufflist,
       pandemicbuff = pandemicbuff,
       multitargetdebuff = multitargetdebuff,
-      target_debuffs = target_debuffs,
       power = power,
       skill = skill,
+      talent = talent,
+      talentlist = talentlist,
    }
 
 

@@ -217,7 +217,7 @@ local skills = prototype.datalist:new(
 
 
 ----------------- player buffs ------------------
-local player_buffs = prototype.datalist:new(
+local player_buffs = prototype.bufflist:new(
    {
       darksoulmisery   = prototype.buff:new("player", buff_enum.DARK_SOUL_MISERY),
       inevitabledemise = prototype.buff:new("player", buff_enum.INEVITABLE_DEMISE),
@@ -337,7 +337,7 @@ end
 
 
 ----------------- target debuffs ------------------
-local target_debuffs = prototype.target_debuffs:new(
+local target_debuffs = prototype.bufflist:new(
    {
       -- normal
       haunt                = prototype.buff:new("target", buff_enum.HAUNT),

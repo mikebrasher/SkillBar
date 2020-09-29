@@ -10,6 +10,10 @@ callback.lua
 prototype.lua
 common.lua
 
+# monk
+monk.lua
+brewmaster.lua
+
 # warlock
 warlock.lua
 affliction.lua

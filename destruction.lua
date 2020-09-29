@@ -81,7 +81,7 @@ local skills = prototype.datalist:new(
 
 
 ----------------- player buffs ------------------
-local player_buffs = prototype.datalist:new(
+local player_buffs = prototype.bufflist:new(
    {
       backdraft           = prototype.buff:new("player", buff_enum.BACKDRAFT),
       darksoulinstability = prototype.buff:new("player", buff_enum.DARK_SOUL_INSTABILITY),
@@ -90,7 +90,7 @@ local player_buffs = prototype.datalist:new(
 
 
 ----------------- target debuffs ------------------
-local target_debuffs = prototype.target_debuffs:new(
+local target_debuffs = prototype.bufflist:new(
    {
       -- normal
       conflagrate = prototype.buff:new("target", buff_enum.CONFLAGRATE),
