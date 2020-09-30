@@ -92,17 +92,24 @@ end
 
 function spec:load()
 
+   --print(string.format("spec:load(%s)", self.name))
+
    spec.__super.load(self)
    
    if (self.talents and self.talents.playertalentupdate) then
+      --print("registering playertalentupdate")
       self:register(self.talents, "PLAYER_TALENT_UPDATE", self.talents.playertalentupdate)
    end
 
    if (self.player_buffs and self.player_buffs.updatethreshold) then
+      --print("registering player_buffs.updatethreshold")
+      -- spell description update seems delayed after talent changes, so just check on combat
+      --self:register(self.player_buffs, "PLAYER_TALENT_UPDATE", self.player_buffs.updatethreshold)
       self:register(self.player_buffs, "PLAYER_REGEN_DISABLED", self.player_buffs.updatethreshold)
    end
 
    if (self.target_debuffs and self.target_debuffs.updatethreshold) then
+      --print("registering target_debuffs.updatethreshold")
       --self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", self.target_debuffs.updatethreshold)
       self:register(self.target_debuffs, "PLAYER_REGEN_DISABLED", self.target_debuffs.updatethreshold)
    end
@@ -122,6 +129,7 @@ function buff:new(unit, buffID, mask)
 	 mask = mask,
 	 active = false,
 	 count = 0,
+	 duration = 0,
 	 expirationTime = 0,
 	 remaining = 0,
 	 extra = nil,
@@ -153,6 +161,7 @@ function buff:update(now)
    
    self.active = false
    self.count = 0
+   self.duration = 0
    self.expirationTime = 0
    self.remaining = 0
    self.extra = nil
@@ -173,6 +182,7 @@ function buff:update(now)
 	    
 	    self.active = true
 	    self.count = count
+	    self.duration = duration
 	    self.expirationTime = expirationTime
 	    self.remaining = expirationTime - now
 	    self.extra = { extra1, extra2, extra3 }
@@ -206,6 +216,7 @@ end
 
 
 function bufflist:updatethreshold()
+   --print(string.format("update threshold on %s", tostring(self)))
    iterate(self, "updatethreshold")
 end
 
@@ -235,8 +246,9 @@ function pandemicbuff:new(unit, buffID, spellID)
 end
     
 function pandemicbuff:updatethreshold()
-   local desc = GetSpellDescription(self.pandemic.spellID) or ""
-   self.pandemic.duration = tonumber(string.match(desc, 'over (%d*.?%d*) sec')) or -1
+   --print("pandemic:updatethreshold()")
+   self.pandemic.description = GetSpellDescription(self.pandemic.spellID) or ""
+   self.pandemic.duration = tonumber(string.match(self.pandemic.description, 'over (%d*.?%d*) sec')) or -1
    self.pandemic.threshold = self.pandemic.duration * 0.3
 end
 

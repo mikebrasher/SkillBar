@@ -110,7 +110,7 @@ local destruction = extends(prototype.spec)
 function destruction:new()
    local o = destruction.__super.new(
       self,
-      specname,
+      "destruction",
       {
 	 skill = skill_enum.NIL,
 	 skill_enum = skill_enum,

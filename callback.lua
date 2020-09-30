@@ -13,7 +13,7 @@ end
 function callback:new(obj, func, spec)
    local o =
       {
-	 id = tostring(func),
+	 id = tostring(obj) .. tostring(func), -- multiple objects may use the same function
 	 obj = obj,
 	 func = func,
 	 spec = spec,
@@ -144,15 +144,28 @@ function onevent:deactivate(spec)
 end
 
 function onevent:handler(event, ...)
+   
    --if ((event ~= "COMBAT_LOG_EVENT_UNFILTERED") and
    --	 (event ~= "INTERNAL_UPDATE"))
    --then
    --   print(string.format("event: %s", event))
    --end
+   
    local dispatch = self.dispatch[event]
    if (dispatch) then
+      
+      --if ((event ~= "COMBAT_LOG_EVENT_UNFILTERED") and
+      --   (event ~= "INTERNAL_UPDATE"))
+      --then
+      --	 for _,cb in pairs(dispatch.callbacks) do
+      --	    print(string.format("%s: obj = %s, func = %s, spec = %s, active = %s", cb.id, tostring(cb.obj), tostring(cb.func), tostring(cb.spec), tostring(cb.active)))
+      --	 end
+      --end
+      
       dispatch:handler(event, ...)
+      
    end
+   
 end
 
 
@@ -182,6 +195,7 @@ local event = {}
 -- registered events are default inactive for specs
 -- and active if spec is not supplied
 function event:register(obj, event, func, spec)
+   --print(string.format("event:register(%s, %s, %s, %s)", tostring(obj), tostring(event), tostring(func), tostring(spec)))
    onevent:register(obj, event, func, spec)
 end
 

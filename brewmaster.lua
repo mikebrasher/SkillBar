@@ -161,7 +161,7 @@ local brewmaster = extends(prototype.spec)
 function brewmaster:new()
    local o = brewmaster.__super.new(
       self,
-      specname,
+      "brewmaster",
       {
 	 skill = skill_enum.NIL,
 	 skill_enum = skill_enum,

@@ -244,7 +244,7 @@ local demonology = extends(prototype.spec)
 function demonology:new()
    local o = demonology.__super.new(
       self,
-      specname,
+      "demonology",
       {
 	 skill = skill_enum.NIL,
 	 skill_enum = skill_enum,
