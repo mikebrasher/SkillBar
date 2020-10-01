@@ -80,7 +80,7 @@ local skills = prototype.datalist:new(
 
 
 ----------------- player buffs ------------------
-local player_buffs = prototype.bufflist:new(
+local player_buffs = prototype.datalist:new(
    {
       demoniccore = prototype.buff:new("player", buff_enum.DEMONIC_CORE),
    }
@@ -88,7 +88,7 @@ local player_buffs = prototype.bufflist:new(
 
 
 ----------------- target debuffs ------------------
-local target_debuffs = prototype.bufflist:new(
+local target_debuffs = prototype.datalist:new(
    {
       -- normal
       fromtheshadows = prototype.buff:new("target", buff_enum.FROM_THE_SHADOWS),

@@ -101,6 +101,7 @@ function spec:load()
       self:register(self.talents, "PLAYER_TALENT_UPDATE", self.talents.playertalentupdate)
    end
 
+   --[[
    if (self.player_buffs and self.player_buffs.updatethreshold) then
       --print("registering player_buffs.updatethreshold")
       -- spell description update seems delayed after talent changes, so just check on combat
@@ -113,6 +114,7 @@ function spec:load()
       --self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", self.target_debuffs.updatethreshold)
       self:register(self.target_debuffs, "PLAYER_REGEN_DISABLED", self.target_debuffs.updatethreshold)
    end
+   --]]
 
 end
 
@@ -206,6 +208,7 @@ end
 
 
 ----------------------- buff list --------------------------
+--[[
 local bufflist = extends(datalist)
 
 function bufflist:new(obj)
@@ -214,11 +217,11 @@ function bufflist:new(obj)
    return o
 end
 
-
 function bufflist:updatethreshold()
    --print(string.format("update threshold on %s", tostring(self)))
    iterate(self, "updatethreshold")
 end
+--]]
 
 
 ----------------------- pandemic buff --------------------------
@@ -235,6 +238,7 @@ function pandemicbuff:new(unit, buffID, spellID)
    o.pandemic =
       {
 	 spellID = spellID,
+	 updatethreshold = false,
 	 duration = 0,
 	 threshold = 0,
 	 active = false,
@@ -244,32 +248,47 @@ function pandemicbuff:new(unit, buffID, spellID)
    return o
    
 end
-    
+
+--[[
 function pandemicbuff:updatethreshold()
    --print("pandemic:updatethreshold()")
    self.pandemic.description = GetSpellDescription(self.pandemic.spellID) or ""
    self.pandemic.duration = tonumber(string.match(self.pandemic.description, 'over (%d*.?%d*) sec')) or -1
    self.pandemic.threshold = self.pandemic.duration * 0.3
 end
+--]]
 
+--[[
 function pandemicbuff:load()
    pandemicbuff.__super.load(self)
    self:updatethreshold()
 end
+--]]
 
 function pandemicbuff:update(now)
    
    pandemicbuff.__super.update(self, now)
 
-   if (self.remaining and self.pandemic.threshold) then
-      self.pandemic.active = self.remaining < self.pandemic.threshold
-      self.pandemic.soon   = self.remaining < self.pandemic.threshold + self.gcd.current
+   local pandemic = self.pandemic
+
+   if (self.active) then
+      
+      if (pandemic.updatethreshold) then
+	 pandemic.duration = self.duration
+	 pandemic.threshold = 0.3 * self.pandemic.duration
+      end
+      
+      pandemic.active = self.remaining < pandemic.threshold
+      pandemic.soon = self.remaining < pandemic.threshold + 2 * self.gcd.current
+
    else
-      local spellID = self.spellID or -1
-      local remaining = self.remaining or -1
-      local threshold = self.pandemic.threshold or -1
-      print(string.format("spellID: %d remaining: %f threshold: %f", spellID, remaining, threshold))
+
+      pandemic.active = true
+      pandemic.soon = true
+      
    end
+
+   pandemic.updatethreshold = not self.active
    
 end
 

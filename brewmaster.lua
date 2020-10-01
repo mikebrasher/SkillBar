@@ -64,7 +64,7 @@ local stagger = prototype.data:new(
 
 function stagger:update(now)
 
-   self.current = UnitStagger("player")
+   self.current = UnitStagger("player") or 0
 
    local tickcount = 20
    if (talents.bobandweave.selected) then
@@ -134,7 +134,7 @@ function purifiedchi:update(now)
 end
 
 ----------------- player buffs ------------------
-local player_buffs = prototype.bufflist:new(
+local player_buffs = prototype.datalist:new(
    {
       blackoutcombo   = prototype.buff:new("player", buff_enum.BLACKOUT_COMBO),
       celestialflames = prototype.buff:new("player", buff_enum.CELESTIAL_FLAMES),
@@ -146,7 +146,7 @@ local player_buffs = prototype.bufflist:new(
 
 
 ----------------- target debuffs ------------------
-local target_debuffs = prototype.bufflist:new(
+local target_debuffs = prototype.datalist:new(
    {
       -- normal
       breathoffire = prototype.buff:new("target", buff_enum.BREATH_OF_FIRE), -- dot does not pandemic
@@ -196,6 +196,10 @@ function brewmaster:update(now)
 	 skill = skill_enum.KEG_SMASH
       elseif (skills.blackoutkick.usable) then
 	 skill = monk.skill_enum.BLACKOUT_KICK
+      elseif (skills.celestialbrew.usable and
+		 player_buffs.purifiedchi.active
+      ) then
+	 skill = skill_enum.CELESTIAL_BREW
       elseif (skills.breathoffire.usable) then
 	 skill = skill_enum.BREATH_OF_FIRE
       elseif (skills.rushingjadewind.usable and
