@@ -166,7 +166,6 @@ function brewmaster:new()
 	 skill = skill_enum.NIL,
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
-	 soulshard = soulshard,
 	 talents = talents,
 	 stagger = stagger,
 	 skills = skills,

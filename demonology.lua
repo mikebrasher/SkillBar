@@ -38,6 +38,7 @@ local buff_enum =
       
       -- debuffs
       FROM_THE_SHADOWS = 270569,
+      DOOM = 37, -- TODO: find real value
    }
 
 

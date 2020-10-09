@@ -174,39 +174,12 @@ function shadowbolt:update(now)
 end
 
 
------------------ drain soul ------------------
-local drainsoul = extends(prototype.skill)
-
-function drainsoul:new()
-   local o = drainsoul.__super.new(self, skill_enum.DRAIN_SOUL)
-   o.execute_phase = false
-   setmetatable(o, self)
-   return o
-end
-
-function drainsoul:update(now)
-   
-   drainsoul.__super.update(self, now)
-   
-   local execute_health = 0.2
-   local target_health = 1
-   if (UnitExists("target")) then
-      local health = UnitHealth("target")
-      local health_max = UnitHealthMax("target")
-      target_health = health / health_max
-   end
-   
-   self.execute_phase = target_health <= execute_health
-   
-end
-
-
 ----------------- skills ------------------
 local skills = prototype.datalist:new(
    {
       agony              = prototype.skill:new(skill_enum.AGONY),
       corruption         = prototype.skill:new(warlock.skill_enum.CORRUPTION),
-      drainsoul          = drainsoul:new(),
+      drainsoul          = prototype.executeskill:new(skill_enum.DRAIN_SOUL, 0.2),
       haunt              = prototype.skill:new(skill_enum.HAUNT),
       maleficrapture     = prototype.skill:new(skill_enum.MALEFIC_RAPTURE),
       shadowbolt         = shadowbolt:new(),

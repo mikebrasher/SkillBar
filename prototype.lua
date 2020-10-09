@@ -443,12 +443,18 @@ function skill:new(spellID)
       {
 	 spellID = spellID,
 	 name = "nil",
+	 basecooldown = 0,
 	 cd = 0,
 	 charges =
 	    {
 	       current = 0,
 	       max = 0,
+	       start = 0,
+	       duration = 0,
 	       capped = false,
+	       partial = 0,
+	       missing = 0,
+	       timetocap = 0,
 	    },
       }
    )
@@ -459,17 +465,33 @@ end
 function skill:load()
    skill.__super.load(self)
    self.name = GetSpellInfo(self.spellID)
-   --print(string.format("Skill Load: %06d %s", self.spellID, tostring(self.name)))
+   self.basecooldown = GetSpellBaseCooldown(self.spellID) / 1000
+   --local bcd = (GetSpellBaseCooldown(self.spellID) or -1000) / 1000   
+   --print(string.format("Skill Load: %06d %s %s", self.spellID, tostring(self.name), bcd))
 end
 
-function skill:updatecharges()
+function skill:updatecharges(now)
 
    local charges = self.charges
+
+   local current, max, start, duration = GetSpellCharges(self.name)
+
+   charges.current = current
+   charges.max = max
+   charges.start = start
+   charges.duration = duration
    
-   charges.current, charges.max = GetSpellCharges(self.name)
-   charges.capped = false
-   if (charges.current and charges.max) then
+   if (current and max and start and duration) then
+      
       charges.capped = charges.current >= charges.max
+      
+      local partial = (current < max) and (now - start) / duration or 0
+      local missing = max - current - partial
+      
+      charges.partial = partial
+      charges.missing = missing
+      charges.timetocap = missing * duration
+
    end
    
 end
@@ -479,20 +501,53 @@ function skill:update(now)
    skill.__super.update(self, now)
 
    -- need to check by name to respect talents for some reason
-   local usable = IsUsableSpell(self.name)
-
-   --print(string.format("skill:update(%s): %f", self.name, now))
-   local start, duration, enabled = GetSpellCooldown(self.name)
-   self.cd = 0
-   if (start and duration) then
-      if (start > 0 and duration > 0) then
-	 self.cd = start + duration - now
+   if (self.name) then
+      
+      local usable = IsUsableSpell(self.name)
+      
+      --print(string.format("skill:update(%s): %f", self.name, now))
+      local start, duration, enabled = GetSpellCooldown(self.name)
+      self.cd = 0
+      if (start and duration) then
+	 if (start > 0 and duration > 0) then
+	    self.cd = start + duration - now
+	 end
       end
+      
+      self.usable = usable and (self.cd <= self.gcd.current)
+      
+      self:updatecharges(now)
+      
+   end
+   
+end
+
+
+----------------- execute skill ------------------
+local executeskill = extends(skill)
+
+function executeskill:new(spellID, threshold)
+   --print("executeskill:new(" .. spellID .. ", " .. threshold .. ")")
+   local o = executeskill.__super.new(self, spellID)
+   o.threshold = threshold or 0.2
+   o.execute_phase = false
+   setmetatable(o, self)
+   return o
+end
+
+function executeskill:update(now)
+   
+   executeskill.__super.update(self, now)
+   
+   local fraction = 1
+   if (UnitExists("target")) then
+      local health = UnitHealth("target")
+      local max = UnitHealthMax("target")
+      fraction = health / max
    end
 
-   self.usable = usable and (self.cd <= self.gcd.current)
-
-   self:updatecharges()
+   --print("threshold: " .. tostring(self.threshold))
+   self.execute_phase = fraction <= self.threshold
    
 end
 
@@ -545,6 +600,7 @@ local prototype =
       multitargetdebuff = multitargetdebuff,
       power = power,
       skill = skill,
+      executeskill = executeskill,
       talent = talent,
       talentlist = talentlist,
    }
