@@ -465,9 +465,9 @@ end
 function skill:load()
    skill.__super.load(self)
    self.name = GetSpellInfo(self.spellID)
-   self.basecooldown = GetSpellBaseCooldown(self.spellID) / 1000
-   --local bcd = (GetSpellBaseCooldown(self.spellID) or -1000) / 1000   
+   local bcd = (GetSpellBaseCooldown(self.spellID) or -1000) / 1000
    --print(string.format("Skill Load: %06d %s %s", self.spellID, tostring(self.name), bcd))
+   self.basecooldown = bcd --GetSpellBaseCooldown(self.spellID) / 1000
 end
 
 function skill:updatecharges(now)
