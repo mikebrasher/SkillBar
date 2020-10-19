@@ -50,19 +50,15 @@ local soulshard = prototype.power:new(Enum.PowerType.SoulShards)
 
 
 ----------------- talents ------------------
-local talents = prototype.data:new(
+local talents = prototype.talentlist:new(
    {
-      absolutecorruption = { selected = false },
-      creepingdeath = { selected = false },
-      drainsoul = { selected = false },
+      absolutecorruption = prototype.talent:new(2, 2),
+      creepingdeath      = prototype.talent:new(7, 2),
+      drainsoul          = prototype.talent:new(1, 3),
+      phantomsingularity = prototype.talent:new(4, 2),
+      viletaint          = prototype.talent:new(4, 3),
    }
 )
-
-function talents:playertalentupdate()
-   self.absolutecorruption.selected = select(4, GetTalentInfo(2, 2, 1))
-   self.creepingdeath.selected = select(4, GetTalentInfo(7, 2, 1))
-   self.drainsoul.selected = select(4, GetTalentInfo(1, 3, 1))
-end
 
 
 ----------------- malefic ------------------
@@ -185,6 +181,7 @@ local skills = prototype.datalist:new(
       shadowbolt         = shadowbolt:new(),
       siphonlife         = prototype.skill:new(skill_enum.SIPHON_LIFE),
       unstableaffliction = prototype.skill:new(skill_enum.UNSTABLE_AFFLICTION),
+      viletaint          = prototype.skill:new(skill_enum.VILE_TAINT),
    }
 )
 
@@ -415,8 +412,9 @@ function affliction:update(now)
 	 skill = skill_enum.UNSTABLE_AFFLICTION
       elseif (skills.maleficrapture.usable and
 		 (
-		    (soulshard.deficit == 0) or
-		       (malefic.count >= 5)
+		    soulshard.capped or
+		       target_debuffs.phantomsingularity.active or
+		       target_debuffs.viletaint.active
 		 )
       ) then
 	 skill = skill_enum.MALEFIC_RAPTURE
@@ -441,16 +439,26 @@ function affliction:update(now)
 		 (
 		    target_debuffs.shadowembrace.known and
 		       (
-			  (
-			     target_debuffs.shadowembrace.count < target_debuffs.shadowembrace.max
-			  ) or
+			  (target_debuffs.shadowembrace.count < target_debuffs.shadowembrace.max) or
 			     (target_debuffs.shadowembrace.remaining < 4 * gcd)
 		       )
 		 )
       ) then
 	 skill = warlock.skill_enum.SHADOW_BOLT
       elseif (skills.maleficrapture.usable and
-		 (soulshard.current >= 2)
+		 (
+		    (soulshard.deficit < 2) and
+		       (
+			  (
+			     talents.phantomsingularity.selected and
+				(skills.phantomsingularity.cd > 10)
+			  ) or
+			     (
+				talents.viletaint.selected and
+				   (skills.viletaint.cd > 10)
+			     )
+		       )
+		 )
       ) then
 	 skill = skill_enum.MALEFIC_RAPTURE
       elseif (skills.drainsoul.usable) then

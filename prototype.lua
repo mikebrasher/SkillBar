@@ -419,6 +419,7 @@ function power:new(type, unmodified)
 	 current = 0,
 	 max = 0,
 	 deficit = 0,
+	 capped = false,
       }
    )
    setmetatable(o, self)
@@ -430,6 +431,7 @@ function power:update(now)
    self.current = UnitPower(self.unit, self.type, self.unmodified)
    self.max = UnitPowerMax(self.unit, self.type, self.unmodified)
    self.deficit = self.max - self.current
+   self.capped = self.current >= self.max
 end
 
 

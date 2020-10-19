@@ -47,15 +47,11 @@ local soulshard = prototype.power:new(Enum.PowerType.SoulShards)
 
 
 ----------------- talents ------------------
-local talents = prototype.data:new(
+local talents = prototype.talentlist:new(
    {
-      --darksoulinstability = { selected = false },
+      --darksoulinstability = prototype.talent:new(37, 3),
    }
 )
-
-function talents:playertalentupdate()
-   --self.darksoulinstability.selected = select(4, GetTalentInfo(7, 3, 1))
-end
 
 
 ----------------- skills ------------------

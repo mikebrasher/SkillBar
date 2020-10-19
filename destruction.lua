@@ -47,19 +47,13 @@ local soulshard = prototype.power:new(Enum.PowerType.SoulShards, true)
 
 
 ----------------- talents ------------------
-local talents = prototype.data:new(
+local talents = prototype.talentlist:new(
    {
-      darksoulinstability = { selected = false },
-      eradication = { selected = false },
-      flashover = { selected = false },
+      darksoulinstability = prototype.talent:new(7, 3),
+      eradication         = prototype.talent:new(1, 2),
+      flashover           = prototype.talent:new(1, 1),
    }
 )
-
-function talents:playertalentupdate()
-   self.darksoulinstability.selected = select(4, GetTalentInfo(7, 3, 1))
-   self.eradication.selected = select(4, GetTalentInfo(1, 2, 1))
-   self.flashover.selected = select(4, GetTalentInfo(1, 1, 1))
-end
 
 
 ----------------- skills ------------------

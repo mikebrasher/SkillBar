@@ -34,6 +34,7 @@ local buff_enum =
       BRAIN_FREEZE = 190446,
       FINGERS_OF_FROST = 44544,
       ICICLES = 205473,
+      RUNE_OF_POWER = 116014,
 
       -- debuffs
       WINTERS_CHILL = 228358,
@@ -58,6 +59,8 @@ local skills = prototype.datalist:new(
       frozenorb    = prototype.skill:new(skill_enum.FROZEN_ORB),
       glacialspike = prototype.skill:new(skill_enum.GLACIAL_SPIKE),
       icelance     = prototype.skill:new(skill_enum.ICE_LANCE),
+      icyveins     = prototype.skill:new(skill_enum.ICY_VEINS),
+      runeofpower  = prototype.skill:new(mage.skill_enum.RUNE_OF_POWER),
    }
 )
 
@@ -68,6 +71,7 @@ local player_buffs = prototype.datalist:new(
       brainfreeze    = prototype.buff:new("player", buff_enum.BRAIN_FREEZE),
       fingersoffrost = prototype.buff:new("player", buff_enum.FINGERS_OF_FROST),
       icicles        = prototype.buff:new("player", buff_enum.ICICLES),
+      runeofpower    = prototype.buff:new("player", buff_enum.RUNE_OF_POWER),
    }
 )
 
@@ -117,9 +121,16 @@ function frost:update(now)
    
    if (InCombatLockdown()) then
       if (skills.icelance.usable and
-	     (target_debuffs.winterschill.active)
+	     (
+		(player_buffs.fingersoffrost.active) or
+		   (target_debuffs.winterschill.active)
+	     )
       ) then
 	 skill = skill_enum.ICE_LANCE
+      elseif (skills.runeofpower.usable and
+		 (not player_buffs.runeofpower.active)
+      ) then
+	 skill = mage.skill_enum.RUNE_OF_POWER
       elseif (skills.flurry.usable and
 		 (
 		    player_buffs.brainfreeze.active and
