@@ -178,6 +178,7 @@ local skills = prototype.datalist:new(
       drainsoul          = prototype.executeskill:new(skill_enum.DRAIN_SOUL, 0.2),
       haunt              = prototype.skill:new(skill_enum.HAUNT),
       maleficrapture     = prototype.skill:new(skill_enum.MALEFIC_RAPTURE),
+      phantomsingularity = prototype.skill:new(skill_enum.PHANTOM_SINGULARITY),
       shadowbolt         = shadowbolt:new(),
       siphonlife         = prototype.skill:new(skill_enum.SIPHON_LIFE),
       unstableaffliction = prototype.skill:new(skill_enum.UNSTABLE_AFFLICTION),

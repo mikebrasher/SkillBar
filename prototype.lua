@@ -419,6 +419,7 @@ function power:new(type, unmodified)
 	 current = 0,
 	 max = 0,
 	 deficit = 0,
+	 percent = 0,
 	 capped = false,
       }
    )
@@ -431,6 +432,7 @@ function power:update(now)
    self.current = UnitPower(self.unit, self.type, self.unmodified)
    self.max = UnitPowerMax(self.unit, self.type, self.unmodified)
    self.deficit = self.max - self.current
+   self.percent = 100 * self.current / self.max
    self.capped = self.current >= self.max
 end
 
@@ -447,6 +449,7 @@ function skill:new(spellID)
 	 name = "nil",
 	 basecooldown = 0,
 	 cd = 0,
+	 casttime = 0,
 	 charges =
 	    {
 	       current = 0,
@@ -517,6 +520,8 @@ function skill:update(now)
       end
       
       self.usable = usable and (self.cd <= self.gcd.current)
+
+      self.casttime = select(4, GetSpellInfo(self.spellID)) / 1000
       
       self:updatecharges(now)
       
