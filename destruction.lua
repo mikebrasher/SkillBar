@@ -60,6 +60,7 @@ local talents = prototype.talentlist:new(
 local skills = prototype.datalist:new(
    {
       cataclysm           = prototype.skill:new(skill_enum.CATACLYSM),
+      channeldemonfire    = prototype.skill:new(skill_enum.CHANNEL_DEMONFIRE),
       chaosbolt           = prototype.skill:new(skill_enum.CHAOS_BOLT),
       darksoulinstability = prototype.skill:new(skill_enum.DARK_SOUL_INSTABILITY),
       havoc               = prototype.skill:new(skill_enum.HAVOC),

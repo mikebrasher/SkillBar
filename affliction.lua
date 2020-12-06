@@ -17,6 +17,7 @@ local skill_enum =
       HAUNT = 48181,
       MALEFIC_RAPTURE = 324536,
       PHANTOM_SINGULARITY = 205179,
+      SEED_OF_CORRUPTION = 27243,
       SHADOW_EMBRACE = 32388,
       SIPHON_LIFE = 63106,
       SUMMON_DARKGLARE = 205180,
@@ -32,16 +33,21 @@ local buff_enum =
       DARK_SOUL_MISERY = 113860,
       INEVITABLE_DEMISE = 334320,
       NIGHTFALL = 264571,
+      
       -- debuffs
-      HAUNT = 48181,
-      VILE_TAINT = 278350,
-      PHANTOM_SINGULARITY = 205179,
-      IMPENDING_CATASTROPHE = 322170,
-      SHADOW_EMBRACE = 32390,
       AGONY = 980,
       CORRUPTION = 146739,
+      HAUNT = 48181,
+      PHANTOM_SINGULARITY = 205179,
+      SEED_OF_CORRUPTION = 27243,
+      SHADOW_EMBRACE = 32390,
       SIPHON_LIFE = 63106,
       UNSTABLE_AFFLICTION = 316099,
+      VILE_TAINT = 278350,
+
+      -- covenant debuffs
+      IMPENDING_CATASTROPHE = 322170,
+      SOUL_ROT = 325640,
    }
 
 
@@ -55,7 +61,9 @@ local talents = prototype.talentlist:new(
       absolutecorruption = prototype.talent:new(2, 2),
       creepingdeath      = prototype.talent:new(7, 2),
       drainsoul          = prototype.talent:new(1, 3),
+      inevitabledemise   = prototype.talent:new(1, 2),
       phantomsingularity = prototype.talent:new(4, 2),
+      sowtheseeds        = prototype.talent:new(4, 1),
       viletaint          = prototype.talent:new(4, 3),
    }
 )
@@ -73,6 +81,7 @@ local malefic = prototype.data:new(
       viletaint = 0,
       phantomsingularity = 0,
       impendingcatastrophe = 0,
+      soulrot = 0,
    }
 )
 
@@ -86,6 +95,7 @@ function malefic:clear()
    self.viletaint = 0
    self.phantomsingularity = 0
    self.impendingcatastrophe = 0
+   self.soulrot = 0
 end
 
 function malefic:update(now)
@@ -113,20 +123,22 @@ function malefic:update(now)
 	    --end
 	    
 	    if (unitCaster == "player") then
-	       if (spellID == 980) then -- Agony
+	       if (spellID == buff_enum.AGONY) then
 		  self.agony = self.agony + 1   
-	       elseif (spellID == 146739) then -- Corruption
+	       elseif (spellID == buff_enum.CORRUPTION) then
 		  self.corruption = self.corruption + 1
-	       elseif (spellID == 63106) then -- Siphon Life
+	       elseif (spellID == buff_enum.SIPHON_LIFE) then
 		  self.siphonlife = self.siphonlife + 1
-	       elseif (spellID == 316099) then -- Unstable Affliction
+	       elseif (spellID == buff_enum.UNSTABLE_AFFLICTION) then
 		  self.unstableaffliction = self.unstableaffliction + 1
-	       elseif (spellID == 278350) then -- Vile Taint
+	       elseif (spellID == buff_enum.VILE_TAINT) then
 		  self.viletaint = self.viletaint + 1
-	       elseif (spellID == 205179) then -- Phantom Singularity
+	       elseif (spellID == buff_enum.PHANTOM_SINGULARITY) then
 		  self.phantomsingularity = self.phantomsingularity + 1
-	       elseif (spellID == 322170) then -- Impending Catastrophe
+	       elseif (spellID == buff_enum.IMPENDING_CATASTROPHE) then
 		  self.impendingcatastrophe = self.impendingcatastrophe + 1
+	       elseif (spellID == buff_enum.SOUL_ROT) then
+		  self.soulrot = self.soulrot + 1
 	       end
 	    end
 	    
@@ -143,7 +155,8 @@ function malefic:update(now)
       self.unstableaffliction +
       self.viletaint +
       self.phantomsingularity + 
-      self.impendingcatastrophe
+      self.impendingcatastrophe +
+      self.soulrot
 
    self.active = self.count > 0
    
@@ -175,10 +188,12 @@ local skills = prototype.datalist:new(
    {
       agony              = prototype.skill:new(skill_enum.AGONY),
       corruption         = prototype.skill:new(warlock.skill_enum.CORRUPTION),
+      drainlife          = prototype.skill:new(warlock.skill_enum.DRAIN_LIFE),
       drainsoul          = prototype.executeskill:new(skill_enum.DRAIN_SOUL, 0.2),
       haunt              = prototype.skill:new(skill_enum.HAUNT),
       maleficrapture     = prototype.skill:new(skill_enum.MALEFIC_RAPTURE),
       phantomsingularity = prototype.skill:new(skill_enum.PHANTOM_SINGULARITY),
+      seedofcorruption   = prototype.skill:new(skill_enum.SEED_OF_CORRUPTION),
       shadowbolt         = shadowbolt:new(),
       siphonlife         = prototype.skill:new(skill_enum.SIPHON_LIFE),
       unstableaffliction = prototype.skill:new(skill_enum.UNSTABLE_AFFLICTION),
@@ -315,7 +330,9 @@ local target_debuffs = prototype.datalist:new(
       viletaint            = prototype.buff:new("target", buff_enum.VILE_TAINT),
       phantomsingularity   = prototype.buff:new("target", buff_enum.PHANTOM_SINGULARITY),
       impendingcatastrophe = prototype.buff:new("target", buff_enum.IMPENDING_CATASTROPHE),
+      seedofcorruption     = prototype.buff:new("target", buff_enum.SEED_OF_CORRUPTION),
       shadowembrace        = shadowembrace:new(),
+      soulrot              = prototype.buff:new("target", buff_enum.SOUL_ROT),
       -- pandemic
       agony              = prototype.pandemicbuff:new("target", buff_enum.AGONY, skill_enum.AGONY),
       corruption         = prototype.pandemicbuff:new("target", buff_enum.CORRUPTION, warlock.skill_enum.CORRUPTION),
@@ -381,12 +398,20 @@ function affliction:update(now)
    local skill = skill_enum.NIL
    
    if (InCombatLockdown()) then
-      if (skills.haunt.usable) then
-	 skill = skill_enum.HAUNT
-      elseif (skills.agony.usable and
-		 target_debuffs.agony.pandemic.active
+      if (skills.agony.usable and
+	     target_debuffs.agony.pandemic.active
       ) then
 	 skill = skill_enum.AGONY
+      elseif (skills.haunt.usable) then
+	 skill = skill_enum.HAUNT
+      elseif (skills.seedofcorruption.usable and
+		 (
+		    talents.sowtheseeds.selected and
+		       (common.lastcast.spellID ~= skill_enum.SEED_OF_CORRUPTION) and
+		       (not target_debuffs.seedofcorruption.active)
+		 )
+      ) then
+	 skill = skill_enum.SEED_OF_CORRUPTION
       elseif (skills.corruption.usable and
 		 (
 		    (
@@ -415,10 +440,19 @@ function affliction:update(now)
 		 (
 		    soulshard.capped or
 		       target_debuffs.phantomsingularity.active or
-		       target_debuffs.viletaint.active
+		       target_debuffs.viletaint.active or
+		       target_debuffs.soulrot.active or
+		       talents.sowtheseeds.selected
 		 )
       ) then
 	 skill = skill_enum.MALEFIC_RAPTURE
+      elseif (skills.drainlife.usable and
+		 (
+		    talents.inevitabledemise.selected and
+		       (player_buffs.inevitabledemise.count > 40)
+		 )
+      ) then
+	 skill = skill_enum.DRAIN_LIFE
       elseif (skills.shadowbolt.usable and
 		 (player_buffs.nightfall.active)
       ) then
