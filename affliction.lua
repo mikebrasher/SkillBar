@@ -17,6 +17,7 @@ local skill_enum =
       HAUNT = 48181,
       MALEFIC_RAPTURE = 324536,
       PHANTOM_SINGULARITY = 205179,
+      RAPID_CONTAGION = 344566,
       SEED_OF_CORRUPTION = 27243,
       SHADOW_EMBRACE = 32388,
       SIPHON_LIFE = 63106,
@@ -43,6 +44,7 @@ local buff_enum =
       SHADOW_EMBRACE = 32390,
       SIPHON_LIFE = 63106,
       UNSTABLE_AFFLICTION = 316099,
+      UNSTABLE_AFFLICTION_RAMPANT_AFFLICTIONS = 342938,
       VILE_TAINT = 278350,
 
       -- covenant debuffs
@@ -55,6 +57,13 @@ local buff_enum =
 local soulshard = prototype.power:new(Enum.PowerType.SoulShards)
 
 
+----------------- pvp talent enum ------------------
+local pvp_talent_enum = 
+   {
+      RAMPANT_AFFLICTIONS = 5379,
+   }
+
+
 ----------------- talents ------------------
 local talents = prototype.talentlist:new(
    {
@@ -65,6 +74,7 @@ local talents = prototype.talentlist:new(
       phantomsingularity = prototype.talent:new(4, 2),
       sowtheseeds        = prototype.talent:new(4, 1),
       viletaint          = prototype.talent:new(4, 3),
+      rampantafflictions = prototype.pvptalent:new(pvp_talent_enum.RAMPANT_AFFLICTIONS),
    }
 )
 
@@ -92,6 +102,7 @@ function malefic:clear()
    self.corruption = 0
    self.siphonlife = 0
    self.unstableaffliction = 0
+   self.rampantafflictions = 0
    self.viletaint = 0
    self.phantomsingularity = 0
    self.impendingcatastrophe = 0
@@ -131,6 +142,8 @@ function malefic:update(now)
 		  self.siphonlife = self.siphonlife + 1
 	       elseif (spellID == buff_enum.UNSTABLE_AFFLICTION) then
 		  self.unstableaffliction = self.unstableaffliction + 1
+	       elseif (spellID == buff_enum.UNSTABLE_AFFLICTION_RAMPANT_AFFLICTIONS) then
+		  self.rampantafflictions = self.rampantafflictions + 1
 	       elseif (spellID == buff_enum.VILE_TAINT) then
 		  self.viletaint = self.viletaint + 1
 	       elseif (spellID == buff_enum.PHANTOM_SINGULARITY) then
@@ -153,6 +166,7 @@ function malefic:update(now)
       self.corruption +
       self.siphonlife +
       self.unstableaffliction +
+      self.rampantafflictions +
       self.viletaint +
       self.phantomsingularity + 
       self.impendingcatastrophe +
@@ -193,9 +207,11 @@ local skills = prototype.datalist:new(
       haunt              = prototype.skill:new(skill_enum.HAUNT),
       maleficrapture     = prototype.skill:new(skill_enum.MALEFIC_RAPTURE),
       phantomsingularity = prototype.skill:new(skill_enum.PHANTOM_SINGULARITY),
+      rapidcontagion     = prototype.skill:new(skill_enum.RAPID_CONTAGION),
       seedofcorruption   = prototype.skill:new(skill_enum.SEED_OF_CORRUPTION),
       shadowbolt         = shadowbolt:new(),
       siphonlife         = prototype.skill:new(skill_enum.SIPHON_LIFE),
+      soulrot            = prototype.skill:new(warlock.skill_enum.SOUL_ROT),
       unstableaffliction = prototype.skill:new(skill_enum.UNSTABLE_AFFLICTION),
       viletaint          = prototype.skill:new(skill_enum.VILE_TAINT),
    }
@@ -217,19 +233,49 @@ local unstableaffliction = extends(prototype.pandemicbuff)
 
 function unstableaffliction:new()
    local o = unstableaffliction.__super.new(self, "target", buff_enum.UNSTABLE_AFFLICTION, skill_enum.UNSTABLE_AFFLICTION)
+   o.targetcount = 0
+   o.rampantafflictions = false
+   o.limit = 1
    o.other = false
    setmetatable(o, self)
    return o
 end
 
+function unstableaffliction:checkpvp()
+   --print("unstableaffliction:setlimit()")
+   --print("ispvp = " .. tostring(UnitIsPVP("player")))
+   --print("ra selected = " .. tostring(talents.rampantafflictions.selected))
+   
+   self.limit = 1
+   self.buffID = buff_enum.UNSTABLE_AFFLICTION
+   self.rampantafflictions = UnitIsPVP("player") and talents.rampantafflictions.selected
+   if (self.rampantafflictions) then
+      self.limit = 3
+      self.buffID = buff_enum.UNSTABLE_AFFLICTION_RAMPANT_AFFLICTIONS
+   end
+end
+
+--[[
+-- talent info hasn't been updated when load is called
+-- so just wait until player regen disabled to checkpvp
+function unstableaffliction:load()
+   unstableaffliction.__super.load(self)
+   self:checkpvp()
+end
+--]]
+
 function unstableaffliction:update(now)
    
    unstableaffliction.__super.update(self, now)
-   
+
    -- is unstable affliction out on some other target?
-   local count = malefic.unstableaffliction or 0
-   self.other = (count > 0) and (not self.active)
-   
+   -- is ua on 3 other targets with pvp talent?
+   self.targetcount = malefic.unstableaffliction or 0
+   if (self.rampantafflictions) then
+      self.targetcount = malefic.rampantafflictions or 0
+   end
+   self.other = (self.targetcount >= self.limit) and (not self.active)
+
 end
 
 
@@ -354,6 +400,7 @@ function affliction:new()
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
 	 soulshard = soulshard,
+	 pvp_talent_enum = pvp_talent_enum,
 	 talents = talents,
 	 malefic = malefic,
 	 skills = skills,
@@ -372,6 +419,7 @@ function affliction:load()
    --self:register(self.talents, "PLAYER_TALENT_UPDATE", talents.playertalentupdate)
    --self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", target_debuffs.updatethreshold)
    self:register(self.target_debuffs.shadowembrace, "COMBAT_LOG_EVENT_UNFILTERED", self.target_debuffs.shadowembrace.cleu)
+   self:register(self.target_debuffs.unstableaffliction, "PLAYER_REGEN_DISABLED", self.target_debuffs.unstableaffliction.checkpvp)
    
 end
 
@@ -436,6 +484,10 @@ function affliction:update(now)
 		 ) 
       )then
 	 skill = skill_enum.UNSTABLE_AFFLICTION
+      elseif (skills.rapidcontagion.usable and
+		 (malefic.count >= 9)
+      ) then
+	 skill = skill_enum.RAPID_CONTAGION
       elseif (skills.maleficrapture.usable and
 		 (
 		    soulshard.capped or

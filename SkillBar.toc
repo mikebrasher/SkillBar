@@ -20,6 +20,10 @@ frost.lua
 monk.lua
 brewmaster.lua
 
+# rgoue
+rogue.lua
+assassination.lua
+
 # warlock
 warlock.lua
 affliction.lua

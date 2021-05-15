@@ -142,6 +142,7 @@ function buff:new(unit, buffID, mask)
 end
 
 function buff:load()
+   
    buff.__super.load(self)
 
    -- default behavior is player buff, target debuff
@@ -580,6 +581,45 @@ function talent:gettalentinfo()
 end
 
 
+----------------------- pvp talent --------------------------
+local pvptalent = extends(data)
+
+function pvptalent:new(talentID)
+   local o = talent.__super.new(
+      self,
+      {
+	 talentID = talentID,
+	 selected = false,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function pvptalent:gettalentinfo()
+
+   --[[
+   local talentID, name, icon, selected, available, spellID, unlocked, row, column, known, grantedByAura
+      = GetPvpTalentInfoByID(self.talentID)
+   print("pvptalent:gettalentinof()")
+   print("  talentID = " .. talentID)
+   print("  name = " .. name)
+   print("  icon = " .. icon)
+   print("  selected = " .. tostring(selected))
+   print("  available = " .. tostring(available))
+   print("  spellID = " .. spellID)
+   print("  unlocked = " .. tostring(unlocked))
+   print("  row = " .. row)
+   print("  column = " .. column)
+   print("  known = " .. tostring(known))
+   print("  grantedByAura = " .. tostring(grantedByAura))
+   --]]
+
+   self.selected = select(10, GetPvpTalentInfoByID(self.talentID))
+   
+end
+
+
 ----------------------- talentlist --------------------------
 local talentlist = extends(datalist)
 
@@ -609,6 +649,7 @@ local prototype =
       skill = skill,
       executeskill = executeskill,
       talent = talent,
+      pvptalent = pvptalent,
       talentlist = talentlist,
    }
 
