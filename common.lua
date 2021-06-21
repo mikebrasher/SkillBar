@@ -43,6 +43,7 @@ function enemies:new()
       self,
       {
 	 melee = 0,
+	 range8 = 0,
 	 ranged = 0,
 	 target = 
 	    {
@@ -74,6 +75,7 @@ function enemies:update(now)
    end
    
    self.melee = 0
+   self.range8 = 0
    self.ranged = 0
    self.tanking = false
    for i = 1, 40 do
@@ -84,6 +86,10 @@ function enemies:update(now)
 	 
 	 if (min <= 5) then
 	    self.melee = self.melee + 1
+	 end
+
+	 if (min <= 8) then
+	    self.range8 = self.range8 + 1
 	 end
 	 
 	 if (min <= 40) then

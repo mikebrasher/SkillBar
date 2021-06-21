@@ -32,14 +32,11 @@ local skill_enum =
       -- covenant
       DOOR_OF_SHADOWS = 300728, -- move to something non class dependant
 
-      --SCOURING_TITHE = 312321,
-      --IMPENDING_CATASTROPHE = 321792,
-      --DECIMATING_BOLT = 325289,
-      --SOUL_ROT = 325640,
+      FLAGELLATION = 323654,
    }
 
 
------------------------ mana --------------------------
+----------------------- energy --------------------------
 local energy = prototype.power:new(Enum.PowerType.Energy)
 
 
