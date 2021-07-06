@@ -1,4 +1,4 @@
-## Interface: 90002
+## Interface: 90100
 ## Title: Skill Bar
 ## Author: Falstar
 ## Version: 0.1

@@ -35,6 +35,8 @@ local buff_enum =
       -- buffs
       DEMONIC_CALLING = 205146,
       DEMONIC_CORE = 264173,
+      DEMONIC_POWER = 265273,
+      NETHER_PORTAL = 267218,
       
       -- debuffs
       FROM_THE_SHADOWS = 270569,
@@ -49,9 +51,261 @@ local soulshard = prototype.power:new(Enum.PowerType.SoulShards)
 ----------------- talents ------------------
 local talents = prototype.talentlist:new(
    {
-      --darksoulinstability = prototype.talent:new(37, 3),
+      demoniccalling = prototype.talent:new(2, 1),
+      sacrificedsouls = prototype.talent:new(7, 1),
+      summonvilefiend = prototype.talent:new(4, 3),
    }
 )
+
+
+----------------- pet ------------------
+local pet = extends(prototype.data)
+
+function pet:new(duration, now)
+   local o = pet.__super.new(
+      self,
+      {
+	 duration = duration or 0,
+	 endtime = now + duration,
+	 remaining = 0,
+	 active = false,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+--function pet:summon(now)
+--   self.endtime = now + self.duration
+--end
+
+function pet:extend(amount)
+   if (self.active) then
+      self.endtime = self.endtime + amount
+   end
+end
+
+function pet:update(now)
+
+   --print("pet:update(%f)", now)
+
+   pet.__super.update(self, now)
+   
+   self.remaining = self.endtime - now
+   self.active = (self.remaining > 0)
+   
+end
+
+
+----------------- demonictyrant ------------------
+local demonictyrant = extends(pet)
+
+function demonictyrant:new(now)
+   local o = demonictyrant.__super.new(self, 15, now)
+   setmetatable(o, self)
+   return o
+end
+
+
+----------------- dreadstalker ------------------
+local dreadstalker = extends(pet)
+
+function dreadstalker:new(now)
+   --print("dreadstalker:new()")
+   local o = dreadstalker.__super.new(self, 12, now)
+   setmetatable(o, self)
+   return o
+end
+
+
+----------------- grimoirefelguard ------------------
+local grimoirefelguard = extends(pet)
+
+function grimoirefelguard:new(now)
+   local o = grimoirefelguard.__super.new(self, 17, now)
+   setmetatable(o, self)
+   return o
+end
+
+
+----------------- vilefiend ------------------
+local vilefiend = extends(pet)
+
+function vilefiend:new(now)
+   local o = vilefiend.__super.new(self, 15, now)
+   setmetatable(o, self)
+   return o
+end
+
+
+----------------- wild imp ------------------
+local wildimp = extends(pet)
+
+function wildimp:new(now)
+   local o = wildimp.__super.new(self, 20, now)
+   o.energy = 6, -- imps appear to get 6 casts now in shadowlands
+   setmetatable(o, self)
+   return o
+end
+
+function wildimp:cast()
+   self.energy = self.energy - 1
+end
+
+function wildimp:update(now)
+   
+   wildimp.__super.update(self, now)
+   
+   self.active = (self.remaining > 0) and (self.energy > 0)
+   
+end
+
+
+----------------- pet list ------------------
+local petlist = extends(prototype.data)
+
+function petlist:new()
+   local o = petlist.__super.new(
+      self,
+      {
+	 count = 0,
+	 pets = {},
+	 remaining = 0,
+	 active = false,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function petlist:add(guid, pet)
+   self.pets[guid] = pet
+end
+
+function petlist:contains(guid)
+   return self.pets[guid] ~= nil
+end
+
+function petlist:get(guid)
+   return self.pets[guid]
+end
+
+function petlist:extend(amount)
+   for _,pet in pairs(self.pets) do
+      pet:extend(amount)
+   end
+end
+
+function petlist:clear()
+   -- Remove all pets
+   for guid,_ in pairs(self.pets) do
+      self.pets[guid] = nil
+   end
+end
+
+function petlist:update(now)
+
+   petlist.__super.update(self, now)
+   
+   self.count = 0
+   self.remaining = 0
+   for guid,pet in pairs(self.pets) do
+      
+      pet:update(now)
+      if (pet.active) then
+	 
+	 self.count = self.count + 1
+
+	 if (pet.remaining > self.remaining) then
+	    self.remaining = pet.remaining
+	 end
+	 
+      else
+	 self.pets[guid] = nil
+      end
+      
+   end
+
+   self.active = self.count > 0
+   
+end
+
+
+----------------- allpets ------------------
+local allpets = prototype.datalist:new(
+   {
+      demonictyrant    = petlist:new(),
+      dreadstalkers    = petlist:new(),
+      grimoirefelguard = petlist:new(),
+      vilefiend        = petlist:new(),
+      wildimps         = petlist:new(),
+   }
+)
+
+function allpets:tyrantextension()
+
+   local amount = 15
+
+   self.dreadstalkers:extend(amount)
+   self.grimoirefelguard:extend(amount)
+   self.vilefiend:extend(amount)
+   self.wildimps:extend(amount)
+   
+end
+
+function allpets:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, _, spellID, spellName)
+
+   local now = GetTime()
+   --print(string.format("allpets cleu: %s %d %s", subevent, spellID, spellName))
+
+   -- TODO: deal with power siphon
+   
+   -- pet summoned
+   -- use spell names, since some ids for spell summon don't match the spellid cast by the player
+   if ((subevent == "SPELL_SUMMON") and
+	 (sourceGUID == common.player.guid)
+   ) then
+
+      --print(string.format("summon pet: %s", spellName))
+      
+      if (spellName == "Summon Demonic Tyrant") then
+
+	 self.demonictyrant:add(destGUID, demonictyrant:new(now))
+	 self:tyrantextension()
+	 
+      elseif (spellName == "Call Dreadstalkers") then
+	 self.dreadstalkers:add(destGUID, dreadstalker:new(now))
+      elseif (spellName == "Grimoire: Felguard") then
+	 self.grimoirefelguard:add(destGUID, grimoirefelguard:new(now))
+      elseif (spellName == "Summon Vilefiend") then
+	 self.vilefiend:add(destGUID, vilefiend:new(now))
+      elseif (spellName == "Wild Imp") then
+	 self.wildimps:add(destGUID, wildimp:new(now))
+      end
+      
+   elseif (subevent == "SPELL_CAST_SUCCESS") then
+      
+      if (self.wildimps:contains(sourceGUID) and
+	     (spellID == skill_enum.FEL_FIREBOLT)
+      ) then
+	 -- Imp casts a fel firebolt. Check if the imp belongs to the player
+
+	 -- imp energy doesn't decrement while tyrant is active
+	 if (not self.demonictyrant.active) then
+	    local imp = self.wildimps:get(sourceGUID)
+	    imp:cast()
+	 end
+
+      elseif ((sourceGUID == common.player.guid) and
+	    (spellID == skill_enum.IMPLOSION)
+      ) then
+	 -- remove all imps on implosion
+	 self.wildimps:clear()
+      end        
+      
+   end
+
+end
 
 
 ----------------- skills ------------------
@@ -68,6 +322,7 @@ local skills = prototype.datalist:new(
       netherportal        = prototype.skill:new(skill_enum.NETHER_PORTAL),
       powersiphon         = prototype.skill:new(skill_enum.POWER_SIPHON),
       shadowbolt          = prototype.skill:new(warlock.skill_enum.SHADOW_BOLT),
+      soulrot             = prototype.skill:new(warlock.skill_enum.SOUL_ROT),
       soulstrike          = prototype.skill:new(skill_enum.SOUL_STRIKE),
       summondemonictyrant = prototype.skill:new(skill_enum.SUMMON_DEMONIC_TYRANT),
       summonfelguard      = prototype.skill:new(skill_enum.SUMMON_FELGUARD),
@@ -76,10 +331,75 @@ local skills = prototype.datalist:new(
 )
 
 
+----------------- tyrant setup ------------------
+local tyrantsetup = prototype.data:new(
+   {
+      calldreadstalkers   = false,
+      grimoirefelguard    = false,
+      netherportal        = false,
+      summondemonictyrant = false,
+      summonvilefiend     = false,
+   }
+)
+
+function tyrantsetup:update(now)
+   
+   self.calldreadstalkers = skills.calldreadstalkers.usable and
+      (skills.summondemonictyrant.cd < 8) -- 12-(tyrant+sb) = 12-(2+2)
+
+   self.grimoirefelguard = skills.grimoirefelguard.usable and
+      (skills.summondemonictyrant.cd < 13) and -- 17-(tyrant+sb) = 17-(2+2)
+      (
+	 (skills.calldreadstalkers.cd < 11) or -- 17-(tyrant+vf+sb) = 17-(2+2+2)
+	    (allpets.dreadstalkers.remaining > skills.summondemonictyrant.cd + 2) -- add cast time
+      )
+
+   self.netherportal = skills.netherportal.usable and
+      (skills.summondemonictyrant.cd < 15)
+   
+   self.summondemonictyrant = skills.summondemonictyrant.usable and
+      (
+	 -- summon tyrant when dreadstalkers and vilefiend (if talented) are up
+	 allpets.dreadstalkers.active and (allpets.dreadstalkers.remaining > 2) and
+	    (
+	       (not talents.summonvilefiend.selected) or
+		  (allpets.vilefiend.active)
+	    ) and
+	    (
+	       (soulshard.current == 0) or
+		  (
+		     allpets.dreadstalkers.active and
+			(allpets.dreadstalkers.remaining < 4) -- tyrant+sb = 2+2
+		  ) or
+		  (
+		     allpets.vilefiend.active and
+			(allpets.vilefiend.remaining < 4) -- tyrant+sb = 2+2
+		  ) or
+		  (
+		     allpets.grimoirefelguard.active and
+			(allpets.grimoirefelguard.remaining < 4) -- tyrant+sb = 2+2
+		  )
+	    )
+      )
+   
+   self.summonvilefiend = skills.summonvilefiend.usable and
+      (
+	 (skills.summondemonictyrant.cd < 13) and -- 15-tyrant = 15-2
+	    (
+	       (skills.calldreadstalkers.cd < 11) or -- 15-(tyrant+vf) = 15-(2+2)
+		  (allpets.dreadstalkers.remaining > skills.summondemonictyrant.cd + 2) -- add cast time
+	    )
+      )
+
+end
+
+
 ----------------- player buffs ------------------
 local player_buffs = prototype.datalist:new(
    {
       demoniccore = prototype.buff:new("player", buff_enum.DEMONIC_CORE),
+      demonicpower = prototype.buff:new("player", buff_enum.DEMONIC_POWER),
+      netherportal = prototype.buff:new("player", buff_enum.NETHER_PORTAL),
    }
 )
 
@@ -96,145 +416,6 @@ local target_debuffs = prototype.datalist:new(
 )
 
 
------------------ imp ------------------
-local imp = extends(prototype.data)
-imp.duration = 20 -- static
-
-function imp:new(now)
-   local o =
-      {
-	 energy = 6, -- imps appear to get 6 casts now in shadowlands
-	 endtime = now + self.duration,
-	 remaining = self.duration,
-	 active = true,
-      }
-   setmetatable(o, self)
-   return o
-end
-
-function imp:cast()
-   self.energy = self.energy - 1
-end
-
-function imp:extend()
-   self.endtime = self.endtime + 15
-end
-
-function imp:update(now)
-
-   imp.__super.update(self, now)
-   
-   self.remaining = self.endtime - now
-   self.active = (self.remaining > 0) and (self.energy > 0)
-   
-end
-
-
------------------ tyrant ------------------
-local tyrant = extends(prototype.data)
-
-function tyrant:new()
-   local o = tyrant.__super.new(
-      self,
-      {
-	 timeout = 15,
-	 endtime = 0,
-	 active = false,
-      }
-   )
-   setmetatable(o, self)
-   return o
-end
-
-function tyrant:update(now)
-   tyrant.__super.update(self, now)
-   --print(string.format("tyrant update: %s %s", tostring(now), tostring(self.endtime)))
-   self.active = now < self.endtime
-end
-
-function tyrant:summon(now)
-   self.endtime = now + self.timeout
-end
-
-
------------------ wild imps ------------------
-local wildimps = prototype.data:new(
-   {
-      count = 0,
-      imps = {},
-      tyrant = tyrant:new(),
-   }
-)
-
-function wildimps:update(now)
-
-   --print(string.format("wildimps update: %f count = %d", now, self.count))
-   
-   self.tyrant:update(now)
-
-   self.count = 0
-   for guid,imp in pairs(self.imps) do
-      imp:update(now)
-      if (imp.active) then
-	 self.count = self.count + 1
-      else
-	 self.imps[guid] = nil
-      end
-   end
-   
-end
-
-function wildimps:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, _, spellID, spellName)
-
-   local now = GetTime()
-   --print(string.format("wildimps cleu: %s %d %s", subevent, spellID, spellName))
-
-   -- TODO: deal with power siphon
-   
-   -- Imp summoned
-   -- use name since different spellIDs for HoG and Inner Demons
-   if ((subevent == "SPELL_SUMMON") and
-	 (sourceGUID == common.player.guid) and
-	 (spellName == "Wild Imp")
-   ) then
-      --print(string.format("wild imps spell summon: %s", destguid))
-      self.imps[destGUID] = imp:new(now)
-   elseif (subevent == "SPELL_CAST_SUCCESS") then
-      
-      -- Imp casts a fel firebolt. Check if the imp belongs to the player
-      if ((self.imps[sourceGUID] ~= nil) and
-	    (spellID == skill_enum.FEL_FIREBOLT)
-      ) then
-
-	 if (not self.tyrant.active) then
-	    self.imps[sourceGUID]:cast()
-	 end
-	 
-      elseif (sourceGUID == common.player.guid) then
-	 
-	 if (spellID == skill_enum.SUMMON_DEMONIC_TYRANT) then
-	    
-	    -- All current imps are extended
-	    for _,imp in pairs(self.imps) do
-	       imp:extend()
-	    end
-	    
-	    self.tyrant:summon(now)
-	    
-	 elseif (spellID == skill_enum.IMPLOSION) then
-	    -- Remove all imps
-	    for guid,_ in pairs(self.imps) do
-	       self.imps[guid] = nil
-	    end
-	 end
-	 
-      end        
-      
-   end
-
-end
-
-
 ----------------- demonology ------------------
 local demonology = extends(prototype.spec)
 
@@ -247,11 +428,12 @@ function demonology:new()
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
 	 soulshard = soulshard,
-	 talents = talents,
+	 talents = talents,	 
+	 allpets = allpets,
 	 skills = skills,
+	 tyrantsetup = tyrantsetup,
 	 player_buffs = player_buffs,
 	 target_debuffs = target_debuffs,
-	 wildimps = wildimps,
       }
    )
    setmetatable(o, self)
@@ -263,7 +445,7 @@ function demonology:load()
    demonology.__super.load(self)
 --   self:register(self.talents, "PLAYER_TALENT_UPDATE", self.talents.playertalentupdate)
 --   self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", self.target_debuffs.updatethreshold)
-   self:register(self.wildimps, "COMBAT_LOG_EVENT_UNFILTERED", self.wildimps.cleu)
+   self:register(self.allpets, "COMBAT_LOG_EVENT_UNFILTERED", self.allpets.cleu)
 end
 
 function demonology:update(now)
@@ -272,21 +454,11 @@ function demonology:update(now)
    demonology.__super.update(self, now)
 
    local gcd = common.gcd.current
-   local wildimps = self.wildimps
-   
-   ----- power -----
-   --soulshard:update()
-   
-   ----- buffs -----
-   --player_buffs:update(now)
-   --target_debuffs:update(now)
+   local allpets = self.allpets
 
-   ----- wild imps -----
-   --wildimps:update(now)
-    
-   ----- skills -----
-   --skills:update(now)
-    
+   -- assume always wearing wilfreds for now
+   local wilfreds = true
+   
    ----- skill priority -----
    local skill = skill_enum.NIL
    
@@ -297,41 +469,141 @@ function demonology:update(now)
 	     target_debuffs.doom.pandemic.active
       ) then
 	 skill = skill_enum.DOOM
-      elseif (skills.summonvilefiend.usable) then
-	    skill = skill_enum.SUMMON_VILEFIEND
-      elseif (skills.bilescourgebombers.usable) then
-	 skill = skill_enum.BILESCOURGE_BOMBERS
-      elseif (skills.calldreadstalkers.usable) then
+
+	 -- elseif cast soul rot on cd if using niya or dreamweaver
+
+
+      elseif (skills.summonvilefiend.usable and
+		 (
+		    (not wilfreds) and
+		       (skills.summondemonictyrant.cd > 40)
+		 )
+      ) then
+	 skill = skill_enum.SUMMON_VILEFIEND
+      elseif (skills.calldreadstalkers.usable and
+		 (skills.summondemonictyrant.cd < 8) -- 12-(tyrant+sb) = 12-(2+2)
+      ) then
 	 skill = skill_enum.CALL_DREADSTALKERS
+      elseif (skills.demonicstrength.usable and
+		 (
+		    (
+		       (not wilfreds) and
+			  (skills.summondemonictyrant.cd > 9)
+		    ) or
+		       (
+			  allpets.demonictyrant.active and
+			     (allpets.demonictyrant.remaining < 6 * common.gcd.max)
+		       )
+		 )
+      ) then
+	 skill = skill_enum.DEMONIC_STRENGTH
+      elseif (skills.calldreadstalkers.usable and
+		 (skills.summondemonictyrant.cd > 20)
+      ) then
+	 skill = skill_enum.CALL_DREADSTALKERS
+      elseif (skills.bilescourgebombers.usable and
+		 (
+		    -- don't cast bombers while tyrant is out or during setup for tyrant
+		    -- maybe doesn't benefit from tyrant dmg buff or increase tyrant dmg?
+		    (not player_buffs.demonicpower.active) and
+		       (skills.summondemonictyrant.cd > 5)
+		 )
+      ) then
+	 skill = skill_enum.BILESCOURGE_BOMBERS
+      elseif (skills.implosion.usable and
+		 (
+		    (
+		       -- don't implode imps while tyrant is out or during setup for tyrant
+		       (not player_buffs.demonicpower.active) and
+			  (skills.summondemonictyrant.cd > 5)
+		    ) and
+		       (
+			  (
+			     (
+				-- without sacrificed souls, implode with more than one target
+				(not talents.sacrificedsouls.selected) and
+				   (enemies > 1)
+			     ) or
+				(
+				   -- with sacrificed souls, save imps a bit for shadowbolt and demon bolt dmg
+				   talents.sacrificedsouls.selected and
+				      (enemies > 2)
+				)
+			  ) and
+			     (allpets.wildimps.count >= 6)
+		       )
+		 )
+	      -- apl has other conditions for implosive potential, but seems redundant?
+      ) then
+	 skill = skill_enum.IMPLOSION
       elseif (skills.handofguldan.usable and
-		 (soulshard.current >= 4)
+		 (
+		    -- pool 5 shards, so we can call dreadstalkers on cd
+		    soulshard.capped or
+		       (
+			  -- if dreadstalkers are up, no need to save shards
+			  (soulshard.current >= 3) and
+			     (
+				allpets.dreadstalkers.active or
+				   allpets.demonictyrant.active
+			     )
+		       ) or
+		       (
+			  -- dump shards on hand if we can't cast dreadstalkers and
+			  -- nether portal is active, more 1 shard hand casts are better
+			  (soulshard.current >= 1) and
+			     (
+				player_buffs.netherportal.active and
+				   (skills.calldreadstalkers.cd > 2 * common.gcd.max)
+			     )
+		       )
+		    -- this doesn't work well if we're holding tyrant
+		    --[[
+		       or
+		       (
+			  -- squeeze out any imps we can right before tyrant
+			  --(skills.summondemonictyrant.cd < common.gcd.max)
+		       )
+		    --]]
+		 )
       ) then
 	 skill = skill_enum.HAND_OF_GULDAN
       elseif (skills.soulstrike.usable and
-		 (soulshard.deficit >= 1)
+		 -- without sacrificed souls buffing demonbolt, soulstrike does more damage
+		 (not talents.sacrificedsouls.selected)
       ) then
 	 skill = skill_enum.SOUL_STRIKE
       elseif (skills.demonbolt.usable and
 		 (
-		    (soulshard.deficit >= 2) and
+		    (
+		       -- only use procs and don't waste shards
+		       (soulshard.deficit >= 2) and
+			  (player_buffs.demoniccore.active)
+		    ) and
 		       (
-			  (player_buffs.demoniccore.count >= 2) or
-			     (
-				(player_buffs.demoniccore.count >= 1) and
-				   (player_buffs.demoniccore.remaining < 5)
-			     )
+			  -- the last 3 conditions only matter for a random 8 second window
+			  -- maybe just use these procs as they occur?
+			  (skills.summondemonictyrant.cd > 20) or
+			     (skills.summondemonictyrant.cd < 12) or
+			     (player_buffs.demoniccore.count > 2) or
+			     talents.sacrificedsouls.selected or
+			     (enemies > 1)
 		       )
-
 		 )
       ) then
 	 skill = skill_enum.DEMONBOLT
-      elseif (skills.implosion.usable and
-		 (wildimps.count > 6) and
-		 (enemies > 1)
-      ) then
-	 skill = skill_enum.IMPLOSION
+      elseif (skills.soulstrike.usable) then
+	 skill = skill_enum.SOUL_STRIKE
       elseif (skills.handofguldan.usable and
-		 (soulshard.current >= 3)
+		 (
+		    -- if we can get back to 5 shards before dreakstalkers is back up
+		    (soulshard.current >= 3) and
+		       (skills.summondemonictyrant.cd > 25) and
+		       (
+			  talents.demoniccalling.selected or
+			     skills.calldreadstalkers.cd > soulshard.deficit * 2 -- time to cap shards with shadowbolt
+		       )
+		 )
       ) then
 	 skill = skill_enum.HAND_OF_GULDAN
       elseif (skills.shadowbolt.usable) then
