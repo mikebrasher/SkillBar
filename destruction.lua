@@ -52,6 +52,7 @@ local talents = prototype.talentlist:new(
       darksoulinstability = prototype.talent:new(7, 3),
       eradication         = prototype.talent:new(1, 2),
       flashover           = prototype.talent:new(1, 1),
+      roaringblaze        = prototype.talent:new(6, 1),
    }
 )
 
@@ -70,6 +71,7 @@ local skills = prototype.datalist:new(
       rainoffire          = prototype.skill:new(skill_enum.RAIN_OF_FIRE),
       shadowburn          = prototype.skill:new(skill_enum.SHADOWBURN),
       soulfire            = prototype.skill:new(skill_enum.SOUL_FIRE),
+      soulrot             = prototype.skill:new(warlock.skill_enum.SOUL_ROT),
       summoninfernal      = prototype.skill:new(skill_enum.SUMMON_INFERNAL),
    }
 )
@@ -160,18 +162,34 @@ function destruction:update(now)
       )
    
    if (InCombatLockdown()) then
-      if (skills.immolate.usable and
+      if (skills.conflagrate.usable and
+	     (
+		talents.roaringblaze.selected and
+		   target_debuffs.conflagrate.remaining < 1.5
+	     )
+      ) then
+	 skill = skill_enum.CONFLAGRATE
+      elseif (skills.immolate.usable and
 	     target_debuffs.immolate.pandemic.active
       ) then
 	 skill = skill_enum.IMMOLATE
-      elseif (skills.chaosbolt.usable and
-		 (soulshard.deficit < 5)
-      ) then
-	 skill = skill_enum.CHAOS_BOLT
       elseif (skills.cataclysm.usable) then
 	 skill = skill_enum.CATACLYSM
       elseif (skills.conflagrate.usable and
-		 skills.conflagrate.charges.capped
+		 (
+		    (not pool_soulshard) and
+		       (not player_buffs.backdraft.active) and
+		       (
+			  (
+			     talents.flashover.selected and
+				(soulshard.current >= 12)
+			  ) or
+			     (
+				(not talents.flashover.selected) and
+				   (soulshard.current >= 15)
+			     )
+		       )
+		 )
       ) then
 	 skill = skill_enum.CONFLAGRATE
       elseif (skills.chaosbolt.usable and
@@ -194,16 +212,21 @@ function destruction:update(now)
 		 )
       ) then
 	 skill = skill_enum.CHAOS_BOLT
-      elseif (skills.conflagrate.usable and
+      elseif (skills.shadowburn.usable and
 		 (
-		    (not pool_soulshard) and
-		       (not player_buffs.backdraft.active) and
-		       (soulshard.current >= 15)
+		    (not pool_soulshard) or
+		       (soulshard.deficit <= 5)
 		 )
       ) then
-	 skill = skill_enum.CONFLAGRATE
-      elseif (skills.shadowburn.usable) then
 	 skill = skill_enum.SHADOWBURN
+      elseif (skills.chaosbolt.usable and
+		 (soulshard.deficit <= 7) -- 5 + 2*enemies, but don't really trust enemies count
+      ) then
+	 skill = skill_enum.CHAOS_BOLT
+      elseif (skills.conflagrate.usable and
+		 (skills.conflagrate.charges.capped)
+      ) then
+	 skill = skill_enum.CONFLAGRATE -- apl says > 1 charge, but seems wasteful
       elseif (skills.incinerate.usable) then
 	 skill = skill_enum.INCINERATE
       end

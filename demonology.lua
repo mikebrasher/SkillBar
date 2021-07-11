@@ -3,6 +3,7 @@ local broadcast = SkillBar.broadcast
 local prototype = SkillBar.prototype
 local common = SkillBar.common
 local warlock = SkillBar.warlock
+local next = next
 
 
 ----------------- skill enum ------------------
@@ -16,6 +17,7 @@ local skill_enum =
       DOOM = 603,
       GRIMOIRE_FELGUARD = 111898,
       HAND_OF_GULDAN = 105174,
+      HAND_OF_GULDAN_SPLASH = 86040,
       IMPLOSION = 196277,
       INNER_DEMONS = 279910, -- spell name is wild imp, but imp summon is due to this talent
       NETHER_PORTAL = 267217,
@@ -170,6 +172,8 @@ function petlist:new()
       {
 	 count = 0,
 	 pets = {},
+	 duration = 0,
+	 endtime = 0,
 	 remaining = 0,
 	 active = false,
       }
@@ -208,7 +212,8 @@ function petlist:update(now)
    petlist.__super.update(self, now)
    
    self.count = 0
-   self.remaining = 0
+   self.duration = 0
+   self.endtime = 0
    for guid,pet in pairs(self.pets) do
       
       pet:update(now)
@@ -216,8 +221,12 @@ function petlist:update(now)
 	 
 	 self.count = self.count + 1
 
-	 if (pet.remaining > self.remaining) then
-	    self.remaining = pet.remaining
+	 if (pet.duration > self.duration) then
+	    self.duration = pet.duration
+	 end
+
+	 if (pet.endtime > self.endtime) then
+	    self.endtime = pet.endtime
 	 end
 	 
       else
@@ -225,9 +234,14 @@ function petlist:update(now)
       end
       
    end
+   self.remaining = self.endtime - now
 
    self.active = self.count > 0
    
+end
+
+function display(now)
+   return self.endtime - now
 end
 
 
@@ -308,6 +322,151 @@ function allpets:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _, 
 end
 
 
+----------------- hand of gul'dan ------------------
+local handofguldan = extends(prototype.skill)
+
+function handofguldan:new()
+   local o = handofguldan.__super.new(self, skill_enum.HAND_OF_GULDAN)
+   o.units = {}
+   o.castGUID = ""
+   o.enemies = 1
+   o.timeout = 30 -- s
+   setmetatable(o, self)
+   return o
+end
+
+function handofguldan:flush(now)
+   
+   for unitGUID,unit in pairs(self.units) do
+      
+      -- remove any splash units that haven't been hit in a while
+      for splashGUID,timestamp in pairs(unit) do
+	 if (now - timestamp > self.timeout) then
+	    unit[splashGUID] = nil
+	 end
+      end
+      
+      -- remove empty units
+      if (next(unit) == nil) then
+	 self.units[unitGUID] = nil
+      end
+      
+   end
+   
+end
+
+function handofguldan:countnearby(targetGUID)
+
+   local count = 1
+   
+   local target = self.units[targetGUID]
+   if (type(target) == "table") then
+      for k,v in pairs(target) do
+	 count = count + 1
+      end
+   end
+
+   return count
+   
+end
+
+function handofguldan:update(now)
+   
+   handofguldan.__super.update(self, now)
+
+   self:flush(now)
+   self.enemies = 0
+   if (UnitExists("target")) then
+      self.enemies = self:countnearby(UnitGUID("target"))
+   end
+   
+end
+
+function handofguldan:cast(destGUID, now)
+
+   --print(string.format("cast on %s", destGUID))
+
+   --[[
+   -- clear table to purge splash units that may have moved away
+   self.units[destGUID] = self.units[destGUID] or {}
+   local target = self.units[destGUID]
+   for guid,_ in pairs(target) do
+      target[guid] = nil
+   end
+   --]]
+   
+   self.castGUID = destGUID
+   
+end
+
+function handofguldan:splash(destGUID, now)
+
+   --print(string.format("splash on %s", destGUID))
+
+   -- ignore self splash on target
+   if (destGUID ~= self.castGUID) then
+      
+      -- add splashed unit to target's list
+      self.units[self.castGUID] = self.units[self.castGUID] or {}
+      local target = self.units[self.castGUID]
+      target[destGUID] = now
+
+      -- also add cast target to splashed unit's list
+      self.units[destGUID] = self.units[destGUID] or {}
+      local splash = self.units[destGUID]
+      splash[self.castGUID] = now
+      
+   end
+   
+end
+
+function handofguldan:unitdied(destGUID)
+
+   -- delete destGUID's list if it exists
+   self.units[destGUID] = nil
+
+   -- remove destGUID from other lists
+   for _,unit in pairs(self.units) do
+
+      if (type(unit) == "table") then
+	 unit[destGUID] = nil
+      end
+      
+   end
+   
+end
+
+function handofguldan:cleu(event, timestamp, subevent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, _, spellID, spellName)
+
+   local now = GetTime()
+   --print(string.format("hand of gul'dan cleu: %s %d %s", subevent, spellID, spellName))
+
+   if ((subevent == "SPELL_CAST_SUCCESS") and
+	 (sourceGUID == common.player.guid) and
+	 (spellID == skill_enum.HAND_OF_GULDAN)
+   ) then
+
+      -- log handofguldan cast on destGUID
+      self:cast(destGUID, now)
+
+   elseif ((subevent == "SPELL_DAMAGE") and
+	 (sourceGUID == common.player.guid) and
+	 (spellID == skill_enum.HAND_OF_GULDAN_SPLASH)
+   )then
+      
+      -- add splash guids to last hog cast target
+      self:splash(destGUID, now)
+      
+   elseif (subevent == "UNIT_DIED") then
+      
+      -- delete destguid from all lists
+      self:unitdied(destGUID)
+      
+   end
+   
+end
+
+
 ----------------- skills ------------------
 local skills = prototype.datalist:new(
    {
@@ -317,7 +476,7 @@ local skills = prototype.datalist:new(
       demonicstrength     = prototype.skill:new(skill_enum.DEMONIC_STRENGTH),
       doom                = prototype.skill:new(skill_enum.DOOM),
       grimoirefelguard    = prototype.skill:new(skill_enum.GRIMOIRE_FELGUARD),
-      handofguldan        = prototype.skill:new(skill_enum.HAND_OF_GULDAN),
+      handofguldan        = handofguldan:new(), --prototype.skill:new(skill_enum.HAND_OF_GULDAN),
       implosion           = prototype.skill:new(skill_enum.IMPLOSION),
       netherportal        = prototype.skill:new(skill_enum.NETHER_PORTAL),
       powersiphon         = prototype.skill:new(skill_enum.POWER_SIPHON),
@@ -446,6 +605,7 @@ function demonology:load()
 --   self:register(self.talents, "PLAYER_TALENT_UPDATE", self.talents.playertalentupdate)
 --   self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", self.target_debuffs.updatethreshold)
    self:register(self.allpets, "COMBAT_LOG_EVENT_UNFILTERED", self.allpets.cleu)
+   self:register(self.skills.handofguldan, "COMBAT_LOG_EVENT_UNFILTERED", self.skills.handofguldan.cleu)
 end
 
 function demonology:update(now)
@@ -462,7 +622,8 @@ function demonology:update(now)
    ----- skill priority -----
    local skill = skill_enum.NIL
    
-   local enemies = common.enemies.target.near10
+   --local enemies = common.enemies.target.near10
+   local enemies = skills.handofguldan.enemies
 
    if (InCombatLockdown()) then
       if (skills.doom.usable and
