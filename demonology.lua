@@ -496,16 +496,40 @@ local tyrantsetup = prototype.data:new(
       calldreadstalkers   = false,
       grimoirefelguard    = false,
       netherportal        = false,
+      soulrot             = false,
       summondemonictyrant = false,
       summonvilefiend     = false,
    }
 )
 
 function tyrantsetup:update(now)
+
+   -- TODO: clean this up
+
    
+   -- ideally setup goes like this @ 20% haste
+   -- tyrant cd    cast          shards before    shards after
+   -- 16.0         soul rot       5                5
+   -- 14.8         grimoire       5                4
+   -- 13.6         vilefiend      4                4
+   -- 11.9         shadowbolt     3                4
+   -- 10.2         shadowbolt     4                5
+   --  8.5         dreadstalkers  5                3
+   --  7.3         shadowbolt     3                4
+   --  5.6         shadowbolt     4                5
+   --  3.9         hand           5                2
+   --  2.7         shadowbolt     2                3
+   --  1.0         hand           3                0
+   --  0.0         tyrant         0                0
+
+   local boltcast = common.player:casttime(2.0)
+   local handcast = common.player:casttime(1.5)
+
+   -- 3 bolts + 2 hand + tyrant = 9.2
    self.calldreadstalkers = skills.calldreadstalkers.usable and
       (skills.summondemonictyrant.cd < 8) -- 12-(tyrant+sb) = 12-(2+2)
 
+   -- 
    self.grimoirefelguard = skills.grimoirefelguard.usable and
       (skills.summondemonictyrant.cd < 13) and -- 17-(tyrant+sb) = 17-(2+2)
       (
@@ -515,7 +539,19 @@ function tyrantsetup:update(now)
 
    self.netherportal = skills.netherportal.usable and
       (skills.summondemonictyrant.cd < 15)
+
+   self.soulrot = skills.soulrot.usable and
+      (skills.summondemonictyrant.cd < 14) and -- 18 - (tyrant+gf+vf+sb) = 18-(2+2+2)
+      (
+	 (skills.calldreadstalkers.cd < 13) or -- 18 - (tyrant+gf+vf+sb+sr) = 18-(1+2+2+2)
+	    (allpets.dreadstalkers.remaining > skills.summondemonictyrant.cd + 2) -- add cast time
+      )
    
+   -- replacing this with a warning to start pooling shards so tthat we're capped
+   -- right in time to cast soul rot to be able to summon tyrant on cd
+   self.summondemonictyrant = skills.summondemonictyrant.cd < 14 + soulshard.deficit * boltcast
+
+   --[[
    self.summondemonictyrant = skills.summondemonictyrant.usable and
       (
 	 -- summon tyrant when dreadstalkers and vilefiend (if talented) are up
@@ -540,6 +576,7 @@ function tyrantsetup:update(now)
 		  )
 	    )
       )
+   --]]
    
    self.summonvilefiend = skills.summonvilefiend.usable and
       (

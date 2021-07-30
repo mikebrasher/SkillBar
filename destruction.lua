@@ -220,11 +220,11 @@ function destruction:update(now)
       ) then
 	 skill = skill_enum.SHADOWBURN
       elseif (skills.chaosbolt.usable and
-		 (soulshard.deficit <= 7) -- 5 + 2*enemies, but don't really trust enemies count
+		 (soulshard.deficit <= 10) -- 5 + 2*enemies, but don't really trust enemies count
       ) then
 	 skill = skill_enum.CHAOS_BOLT
       elseif (skills.conflagrate.usable and
-		 (skills.conflagrate.charges.capped)
+		 (skills.conflagrate.charges.current > 1) --.capped)
       ) then
 	 skill = skill_enum.CONFLAGRATE -- apl says > 1 charge, but seems wasteful
       elseif (skills.incinerate.usable) then

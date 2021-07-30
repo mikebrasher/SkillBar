@@ -27,6 +27,11 @@ function player:update(now)
    self.haste = UnitSpellHaste("player")
 end
 
+function player:casttime(unhasted)
+   local hasted = unhasted / (1 + self.haste / 100)
+   return hasted
+end
+
 function player:load()
    --print("player load")
    player.__super.load(self)
