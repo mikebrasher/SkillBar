@@ -708,7 +708,7 @@ function demonology:update(now)
 		 )
       ) then
 	 skill = skill_enum.BILESCOURGE_BOMBERS
-      elseif (skills.implosion.usable and
+      elseif (skills.implosion.usable and false and
 		 (
 		    (
 		       -- don't implode imps while tyrant is out or during setup for tyrant
