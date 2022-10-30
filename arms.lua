@@ -9,6 +9,7 @@ local warrior = SkillBar.warrior
 local skill_enum =
    {
       NIL = 0,
+      BLADESTORM = 227847,
       CLEAVE = 845,
       COLOSSUS_SMASH = 167105,
       DIE_BY_THE_SWORD = 118038,
@@ -47,6 +48,7 @@ local talents = prototype.talentlist:new(
 ----------------- skills ------------------
 local skills = prototype.datalist:new(
    {
+      bladestorm    = prototype.skill:new(skill_enum.BLADESTORM),
       colossussmash = prototype.skill:new(skill_enum.COLOSSUS_SMASH),
       execute       = prototype.skill:new(warrior.skill_enum.EXECUTE),
       mortalstrike  = prototype.skill:new(skill_enum.MORTAL_STRIKE),
@@ -125,8 +127,8 @@ function arms:update(now)
 	  target_debuffs.rend.pandemic.active
       ) then
 	 skill = skill_enum.REND
-      elseif (skills.colossussmash.usable) then
-	 skill = skill_enum.COLOSSUS_SMASH
+      --elseif (skills.colossussmash.usable) then
+      --   skill = skill_enum.COLOSSUS_SMASH
       elseif (skills.mortalstrike.usable and
 	      (
 		 (target_debuffs.deepwounds.pandemic.active) or
