@@ -1,4 +1,4 @@
-## Interface: 90200
+## Interface: 100000
 ## Title: Skill Bar
 ## Author: Falstar
 ## Version: 0.1
@@ -29,6 +29,12 @@ warlock.lua
 affliction.lua
 demonology.lua
 destruction.lua
+
+# warrior
+warrior.lua
+arms.lua
+fury.lua
+protection.lua
 
 #driver
 driver.lua
