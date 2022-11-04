@@ -18,6 +18,7 @@ local skill_enum =
       REND = 772,
       SKULLSPLITTER = 260643,
       SWEEPING_STRIKES = 260708,
+      WARBREAKER = 262161,
    }
 
 
@@ -37,10 +38,12 @@ local buff_enum =
    }
 
 
------------------ talents ------------------
-local talents = prototype.talentlist:new(
+----------------- traits ------------------
+local traits = prototype.traitlist:new(
    {
-      --absolutecorruption = prototype.talent:new(2, 2),
+      -- danceofdeath = prototype.trait:new(90263),
+      fervorofbattle = prototype.trait:new(90272),
+      rend = prototype.trait:new(90284),
    }
 )
 
@@ -55,6 +58,7 @@ local skills = prototype.datalist:new(
       overpower     = prototype.skill:new(skill_enum.OVERPOWER),
       slam          = prototype.skill:new(warrior.skill_enum.SLAM),
       rend          = prototype.skill:new(skill_enum.REND),
+      warbreaker    = prototype.skill:new(skill_enum.WARBREAKER),
       whirlwind     = prototype.skill:new(warrior.skill_enum.WHIRLWIND),
    }
 )
@@ -92,7 +96,7 @@ function arms:new()
 	 skill = skill_enum.NIL,
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
-	 talents = talents,
+	 traits = traits,
 	 skills = skills,
 	 player_buffs = player_buffs,
 	 target_debuffs = target_debuffs,
@@ -103,14 +107,8 @@ function arms:new()
 end
 
 function arms:load()
-
    arms.__super.load(self)
-
-   --self:register(self.talents, "PLAYER_TALENT_UPDATE", talents.playertalentupdate)
-   --self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", target_debuffs.updatethreshold)
-   --self:register(self.target_debuffs.shadowembrace, "COMBAT_LOG_EVENT_UNFILTERED", self.target_debuffs.shadowembrace.cleu)
-   --self:register(self.target_debuffs.unstableaffliction, "PLAYER_REGEN_DISABLED", self.target_debuffs.unstableaffliction.checkpvp)
-   
+   -- self:register(self.traits, "TRAIT_CONFIG_UPDATED", traits.traitconfigupdated)
 end
 
 function arms:update(now)
@@ -145,7 +143,7 @@ function arms:update(now)
       ) then
 	 skill = skill_enum.OVERPOWER
       elseif (skills.whirlwind.usable and
-	      true -- talent fervor of battle
+	      traits.fervorofbattle.selected
       ) then
 	 skill = warrior.skill_enum.WHIRLWIND
       elseif (skills.slam.usable) then

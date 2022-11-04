@@ -117,6 +117,7 @@ onevent:create("PLAYER_TALENT_UPDATE", true)
 onevent:create("PLAYER_REGEN_DISABLED", true)
 onevent:create("PLAYER_LOGIN", true)
 onevent:create("PLAYER_SPECIALIZATION_CHANGED", true)
+onevent:create("TRAIT_CONFIG_UPDATED", true)
 
 -- custom events
 onevent:create("INTERNAL_UPDATE")

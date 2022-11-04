@@ -100,6 +100,12 @@ function spec:load()
       --print("registering playertalentupdate")
       self:register(self.talents, "PLAYER_TALENT_UPDATE", self.talents.playertalentupdate)
    end
+   
+   if (self.traits and self.traits.traitconfigupdated) then
+      --print("registering trait config updated")
+      self:register(self.traits, "TRAIT_CONFIG_UPDATED", self.traits.traitconfigupdated)
+      self:register(self.traits, "PLAYER_TALENT_UPDATE", self.traits.traitconfigupdated)
+   end
 
    --[[
    if (self.player_buffs and self.player_buffs.updatethreshold) then
@@ -634,6 +640,53 @@ function talentlist:playertalentupdate()
 end
 
 
+----------------------- trait --------------------------
+
+local trait = extends(data)
+
+function trait:new(id)
+   local o = trait.__super.new(
+      self,
+      {
+	 id = id, -- nodeID
+	 selected = false,
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+function trait:getinfo()
+   -- print("get info")
+   local configID = C_ClassTalents.GetActiveConfigID()
+   local nodeInfo = C_Traits.GetNodeInfo(configID, self.id)
+   -- print(string.format("configID: %d, nodeID: %d", configID, nodeID))
+   if (nodeInfo) then
+      local activeEntry = nodeInfo.activeEntry
+      local activeRank = nodeInfo.activeRank
+      self.selected = activeEntry and activeRank > 0
+   else
+      print(string.format("warning: trait id:%d is not valid", self.id))
+   end
+end
+
+
+----------------------- traitlist --------------------------
+local traitlist = extends(datalist)
+
+function traitlist:new(obj)
+   local o = traitlist.__super.new(self, obj)
+   setmetatable(o, self)
+   return o
+end
+
+-- https://wowpedia.fandom.com/wiki/TRAIT_CONFIG_UPDATED
+function traitlist:traitconfigupdated()
+   --print("trait config updated")
+   iterate(self, "getinfo")
+end
+
+
 ----------------------- prototype --------------------------
 local prototype =
    {
@@ -651,6 +704,8 @@ local prototype =
       talent = talent,
       pvptalent = pvptalent,
       talentlist = talentlist,
+      trait = trait,
+      traitlist = traitlist,
    }
 
 

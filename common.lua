@@ -243,6 +243,50 @@ function gcd:update(now)
 end
 
 
+---------------------- traits ------------------------
+local traits = extends(prototype.data)
+
+function traits:new()
+   local o = traits.__super.new(
+      self,
+      {
+	 all = {},
+      }
+   )
+   setmetatable(o, self)
+   return o
+end
+
+-- https://www.wowinterface.com/forums/showthread.php?p=341064
+function traits:load()
+   local configID = C_ClassTalents.GetActiveConfigID()
+   local configInfo = C_Traits.GetConfigInfo(configID)
+   local treeIDs = configInfo["treeIDs"]
+   for itree = 1, #treeIDs do
+      for _, nodeID in pairs(C_Traits.GetTreeNodes(treeIDs[itree])) do
+	 local node = {}
+	 local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
+	 local activeEntry = nodeInfo.activeEntry
+	 -- node.activeEntry = activeEntry
+	 node.nodeID = nodeID
+	 node.activeRank = nodeInfo.activeRank
+	 -- activeEntry == nil for traits in other specs?
+	 if (activeEntry) then
+	    local activeEntryID = activeEntry.entryID
+	    local entryInfo = C_Traits.GetEntryInfo(configID, activeEntryID)
+	    local definitionID = entryInfo["definitionID"]
+	    local definitionInfo = C_Traits.GetDefinitionInfo(definitionID)
+	    local spellID = definitionInfo["spellID"]
+	    local spellName = GetSpellInfo(spellID)
+	    node.spellID = spellID
+	    -- only add nodes with active entries
+	    self.all[spellName] = node
+	 end
+      end
+   end
+end
+
+
 ----------------------- common --------------------------
 local common = extends(prototype.datalist)
 
@@ -255,6 +299,7 @@ function common:new()
 	 enemies = enemies:new(),
 	 casting = casting:new(),
 	 lastcast = lastcast:new(),
+	 traits = traits:new(),
       }
    )
    setmetatable(o, self)
