@@ -12,6 +12,7 @@ local skill_enum =
       BLOODTHIRST = 23881,
       ENRANGED_REGENERATION = 184364,
       EXECUTE = 280735, -- fury only
+      ODYNS_FURY = 385059,
       RAGING_BLOW = 85288,
       RAMPAGE = 184367,
       WHIRLWIND = 190411, -- fury only
@@ -33,10 +34,10 @@ local buff_enum =
    }
 
 
------------------ talents ------------------
-local talents = prototype.talentlist:new(
+----------------- traits ------------------
+local traits = prototype.traitlist:new(
    {
-      --absolutecorruption = prototype.talent:new(2, 2),
+      annihilator = prototype.trait:new(90419),
    }
 )
 
@@ -46,8 +47,10 @@ local skills = prototype.datalist:new(
    {
       bloodthirst = prototype.skill:new(skill_enum.BLOODTHIRST),
       execute     = prototype.skill:new(skill_enum.EXECUTE),
+      odynsfury   = prototype.skill:new(skill_enum.ODYNS_FURY),
       ragingblow  = prototype.skill:new(skill_enum.RAGING_BLOW),
       rampage     = prototype.skill:new(skill_enum.RAMPAGE),
+      slam        = prototype.skill:new(warrior.skill_enum.SLAM),
       whirlwind   = prototype.skill:new(skill_enum.WHIRLWIND),
    }
 )
@@ -87,7 +90,7 @@ function fury:new()
 	 skill = skill_enum.NIL,
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
-	 talents = talents,
+	 traits = traits,
 	 skills = skills,
 	 player_buffs = player_buffs,
 	 target_debuffs = target_debuffs,
@@ -98,14 +101,8 @@ function fury:new()
 end
 
 function fury:load()
-
    fury.__super.load(self)
-
-   --self:register(self.talents, "PLAYER_TALENT_UPDATE", talents.playertalentupdate)
-   --self:register(self.target_debuffs, "PLAYER_TALENT_UPDATE", target_debuffs.updatethreshold)
-   --self:register(self.target_debuffs.shadowembrace, "COMBAT_LOG_EVENT_UNFILTERED", self.target_debuffs.shadowembrace.cleu)
-   --self:register(self.target_debuffs.unstableaffliction, "PLAYER_REGEN_DISABLED", self.target_debuffs.unstableaffliction.checkpvp)
-   
+   -- self:register(self.traits, "TRAIT_CONFIG_UPDATED", traits.traitconfigupdated)
 end
 
 function fury:update(now)
@@ -118,14 +115,20 @@ function fury:update(now)
    local skill = skill_enum.NIL
    
    if (InCombatLockdown()) then
-      if (skills.execute.usable) then
-	 skill = skill_enum.EXECUTE
-      elseif (skills.rampage.usable) then
+      if (skills.rampage.usable) then
 	 skill = skill_enum.RAMPAGE
-      elseif (skills.ragingblow.usable) then
+      elseif (skills.execute.usable) then
+	 skill = skill_enum.EXECUTE
+      elseif (skills.ragingblow.usable and
+	      (not traits.annihilator.selected)
+      ) then
 	 skill = skill_enum.RAGING_BLOW
       elseif (skills.bloodthirst.usable) then
 	 skill = skill_enum.BLOODTHIRST
+      elseif (skills.slam.usable and
+	      traits.annihilator.selected
+      ) then
+	 skill = warrior.skill_enum.SLAM
       elseif (skills.whirlwind.usable) then
 	 skill = skill_enum.WHIRLWIND
       end
