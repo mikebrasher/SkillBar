@@ -26,6 +26,8 @@ local buff_enum =
       BLOODCRAZE = 393951,
       ENRAGE = 184362,
       ENRAGED_REGENERATION = 184364,
+      FRENZY = 335082,
+      RECKLESSNESS = 1719,
       SUDDEN_DEATH = 280776,
       WHIRLWIND = 85739,
       
@@ -37,7 +39,9 @@ local buff_enum =
 ----------------- traits ------------------
 local traits = prototype.traitlist:new(
    {
-      annihilator = prototype.trait:new(90419),
+      annihilator      = prototype.trait:new(90419),
+      frenzy           = prototype.trait:new(90406),
+      overwhelmingrage = prototype.trait:new(90378),
    }
 )
 
@@ -59,10 +63,12 @@ local skills = prototype.datalist:new(
 ----------------- player buffs ------------------
 local player_buffs = prototype.datalist:new(
    {
-      bloodcraze  = prototype.buff:new("player", buff_enum.BLOODCRAZE),
-      enrage      = prototype.buff:new("player", buff_enum.ENRAGE),
-      suddendeath = prototype.buff:new("player", buff_enum.SUDDEN_DEATH),
-      whirlwind   = prototype.buff:new("player", buff_enum.whirlwind),
+      bloodcraze   = prototype.buff:new("player", buff_enum.BLOODCRAZE),
+      enrage       = prototype.buff:new("player", buff_enum.ENRAGE),
+      frenzy       = prototype.buff:new("player", buff_enum.FRENZY),
+      recklessness = prototype.buff:new("player", buff_enum.RECKLESSNESS),
+      suddendeath  = prototype.buff:new("player", buff_enum.SUDDEN_DEATH),
+      whirlwind    = prototype.buff:new("player", buff_enum.WHIRLWIND),
    }
 )
 
@@ -115,20 +121,50 @@ function fury:update(now)
    local skill = skill_enum.NIL
    
    if (InCombatLockdown()) then
-      if (skills.rampage.usable) then
+      if (skills.rampage.usable and
+	  (
+	     player_buffs.recklessness.active or
+	     (player_buffs.enrage.remaining < gcd) or
+	     (
+		traits.frenzy.selected and
+		(player_buffs.frenzy.remaining < gcd)
+	     ) or
+	     (warrior.rage.deficit < 20)
+	  )
+      ) then
 	 skill = skill_enum.RAMPAGE
       elseif (skills.execute.usable) then
 	 skill = skill_enum.EXECUTE
+      elseif (skills.bloodthirst.usable and
+	      (
+		 (not player_buffs.enrage.active) or
+		 (
+		    traits.annihilator.selected and
+		    (not player_buffs.recklessness.active)
+		 )
+	      )
+      ) then
+	 skill = skill_enum.BLOODTHIRST
       elseif (skills.ragingblow.usable and
-	      (not traits.annihilator.selected)
+	      (skills.ragingblow.charges.current > 1)
       ) then
 	 skill = skill_enum.RAGING_BLOW
-      elseif (skills.bloodthirst.usable) then
+      elseif (skills.bloodthirst.usable and
+	      (traits.annihilator.selected)	      
+      ) then
 	 skill = skill_enum.BLOODTHIRST
+      elseif (skills.rampage.usable) then
+	 skill = skill_enum.RAMPAGE
       elseif (skills.slam.usable and
 	      traits.annihilator.selected
       ) then
 	 skill = warrior.skill_enum.SLAM
+      elseif (skills.bloodthirst.usable and
+	      (not traits.annihilator.selected)	      
+      ) then
+	 skill = skill_enum.BLOODTHIRST
+      elseif (skills.ragingblow.usable) then
+	 skill = skill_enum.RAGING_BLOW
       elseif (skills.whirlwind.usable) then
 	 skill = skill_enum.WHIRLWIND
       end
