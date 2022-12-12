@@ -146,7 +146,10 @@ function fury:update(now)
       ) then
 	 skill = skill_enum.BLOODTHIRST
       elseif (skills.ragingblow.usable and
-	      (skills.ragingblow.charges.current > 1)
+	      (
+		 (not traits.annihilator.selected) and
+		 (skills.ragingblow.charges.current > 1)
+	      )
       ) then
 	 skill = skill_enum.RAGING_BLOW
       elseif (skills.bloodthirst.usable and
