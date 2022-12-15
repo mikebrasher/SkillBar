@@ -15,6 +15,7 @@ local skill_enum =
       ODYNS_FURY = 385059,
       RAGING_BLOW = 85288,
       RAMPAGE = 184367,
+      THUNDEROUS_ROAR = 384318,
       WHIRLWIND = 190411, -- fury only
    }
 
@@ -49,13 +50,14 @@ local traits = prototype.traitlist:new(
 ----------------- skills ------------------
 local skills = prototype.datalist:new(
    {
-      bloodthirst = prototype.skill:new(skill_enum.BLOODTHIRST),
-      execute     = prototype.skill:new(skill_enum.EXECUTE),
-      odynsfury   = prototype.skill:new(skill_enum.ODYNS_FURY),
-      ragingblow  = prototype.skill:new(skill_enum.RAGING_BLOW),
-      rampage     = prototype.skill:new(skill_enum.RAMPAGE),
-      slam        = prototype.skill:new(warrior.skill_enum.SLAM),
-      whirlwind   = prototype.skill:new(skill_enum.WHIRLWIND),
+      bloodthirst    = prototype.skill:new(skill_enum.BLOODTHIRST),
+      execute        = prototype.skill:new(skill_enum.EXECUTE),
+      odynsfury      = prototype.skill:new(skill_enum.ODYNS_FURY),
+      ragingblow     = prototype.skill:new(skill_enum.RAGING_BLOW),
+      rampage        = prototype.skill:new(skill_enum.RAMPAGE),
+      slam           = prototype.skill:new(warrior.skill_enum.SLAM),
+      thunderousroar = prototype.skill:new(skill_enum.THUNDEROUS_ROAR),
+      whirlwind      = prototype.skill:new(skill_enum.WHIRLWIND),
    }
 )
 
@@ -133,6 +135,10 @@ function fury:update(now)
 	  )
       ) then
 	 skill = skill_enum.RAMPAGE
+      elseif (skills.whirlwind.usable and
+	      (common.enemies.melee > 2)
+      ) then
+	 skill = skill_enum.WHIRLWIND
       elseif (skills.execute.usable) then
 	 skill = skill_enum.EXECUTE
       elseif (skills.bloodthirst.usable and
@@ -166,7 +172,10 @@ function fury:update(now)
 	      (not traits.annihilator.selected)	      
       ) then
 	 skill = skill_enum.BLOODTHIRST
-      elseif (skills.ragingblow.usable) then
+      elseif (skills.ragingblow.usable and
+	      (not traits.annihilator.selected)
+	      
+      ) then
 	 skill = skill_enum.RAGING_BLOW
       elseif (skills.whirlwind.usable) then
 	 skill = skill_enum.WHIRLWIND
