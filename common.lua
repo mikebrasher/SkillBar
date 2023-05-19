@@ -15,6 +15,8 @@ function player:new()
       {
 	 guid = "nil",
 	 haste = 0,
+	 health = 0,
+	 healthmax = 0,
       }
    )
    setmetatable(o, self)
@@ -25,6 +27,8 @@ function player:update(now)
    --print(string.format("player update: %f", now))
    player.__super.update(self, now)
    self.haste = UnitSpellHaste("player")
+   self.health = UnitHealth("player")
+   self.healthmax = UnitHealthMax("player")
 end
 
 function player:casttime(unhasted)

@@ -13,8 +13,10 @@ local skill_enum =
       ENRANGED_REGENERATION = 184364,
       EXECUTE = 280735, -- fury only
       ODYNS_FURY = 385059,
+      ONSLAUGHT = 315720,
       RAGING_BLOW = 85288,
       RAMPAGE = 184367,
+      RAVAGER = 228920,
       THUNDEROUS_ROAR = 384318,
       WHIRLWIND = 190411, -- fury only
    }
@@ -28,6 +30,7 @@ local buff_enum =
       ENRAGE = 184362,
       ENRAGED_REGENERATION = 184364,
       FRENZY = 335082,
+      RECKLESS_ABANDON = 396752,
       RECKLESSNESS = 1719,
       SUDDEN_DEATH = 280776,
       WHIRLWIND = 85739,
@@ -51,10 +54,12 @@ local traits = prototype.traitlist:new(
 local skills = prototype.datalist:new(
    {
       bloodthirst    = prototype.skill:new(skill_enum.BLOODTHIRST),
-      execute        = prototype.skill:new(skill_enum.EXECUTE),
+      execute        = prototype.executeskill:new(skill_enum.EXECUTE, 0.35),
       odynsfury      = prototype.skill:new(skill_enum.ODYNS_FURY),
+      onslaught      = prototype.skill:new(skill_enum.ONSLAUGHT),
       ragingblow     = prototype.skill:new(skill_enum.RAGING_BLOW),
       rampage        = prototype.skill:new(skill_enum.RAMPAGE),
+      ravager        = prototype.skill:new(skill_enum.RAVAGER),
       slam           = prototype.skill:new(warrior.skill_enum.SLAM),
       thunderousroar = prototype.skill:new(skill_enum.THUNDEROUS_ROAR),
       whirlwind      = prototype.skill:new(skill_enum.WHIRLWIND),
@@ -65,12 +70,13 @@ local skills = prototype.datalist:new(
 ----------------- player buffs ------------------
 local player_buffs = prototype.datalist:new(
    {
-      bloodcraze   = prototype.buff:new("player", buff_enum.BLOODCRAZE),
-      enrage       = prototype.buff:new("player", buff_enum.ENRAGE),
-      frenzy       = prototype.buff:new("player", buff_enum.FRENZY),
-      recklessness = prototype.buff:new("player", buff_enum.RECKLESSNESS),
-      suddendeath  = prototype.buff:new("player", buff_enum.SUDDEN_DEATH),
-      whirlwind    = prototype.buff:new("player", buff_enum.WHIRLWIND),
+      bloodcraze      = prototype.buff:new("player", buff_enum.BLOODCRAZE),
+      enrage          = prototype.buff:new("player", buff_enum.ENRAGE),
+      frenzy          = prototype.buff:new("player", buff_enum.FRENZY),
+      recklessabandon = prototype.buff:new("player", buff_enum.RECKLESS_ABANDON),
+      recklessness    = prototype.buff:new("player", buff_enum.RECKLESSNESS),
+      suddendeath     = prototype.buff:new("player", buff_enum.SUDDEN_DEATH),
+      whirlwind       = prototype.buff:new("player", buff_enum.WHIRLWIND),
    }
 )
 
@@ -136,11 +142,16 @@ function fury:update(now)
       ) then
 	 skill = skill_enum.RAMPAGE
       elseif (skills.whirlwind.usable and
-	      (common.enemies.melee > 2)
+	      (
+		 (common.enemies.melee > 2) and
+		 (not player_buffs.whirlwind.active)
+	      )
       ) then
 	 skill = skill_enum.WHIRLWIND
       elseif (skills.execute.usable) then
 	 skill = skill_enum.EXECUTE
+      elseif (skills.onslaught.usable) then
+	 skill = skill_enum.ONSLAUGHT
       elseif (skills.bloodthirst.usable and
 	      (
 		 (not player_buffs.enrage.active) or

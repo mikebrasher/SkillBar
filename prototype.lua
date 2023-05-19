@@ -140,7 +140,7 @@ function buff:new(unit, buffID, mask)
 	 duration = 0,
 	 expirationTime = 0,
 	 remaining = 0,
-	 extra = nil,
+	 extra = {},
       }
    )
    setmetatable(o, self)
@@ -173,7 +173,9 @@ function buff:update(now)
    self.duration = 0
    self.expirationTime = 0
    self.remaining = 0
-   self.extra = nil
+   self.extra[1] = 0
+   self.extra[2] = 0
+   self.extra[3] = 0
    
    for ibuff = 1, 40 do
       
@@ -194,7 +196,9 @@ function buff:update(now)
 	    self.duration = duration
 	    self.expirationTime = expirationTime
 	    self.remaining = expirationTime - now
-	    self.extra = { extra1, extra2, extra3 }
+	    self.extra[1] = extra1
+	    self.extra[2] = extra2
+	    self.extra[3] = extra3
 	    
 	    --print(string.format("  found: %d %s %d %5.2f",
 	    --      self.buffID, tostring(self.active), self.count, self.remaining))
@@ -486,7 +490,7 @@ function skill:updatecharges(now)
 
    local charges = self.charges
 
-   local current, max, start, duration = GetSpellCharges(self.name)
+   local current, max, start, duration = GetSpellCharges(self.spellID)  -- name)
 
    charges.current = current
    charges.max = max
@@ -515,10 +519,10 @@ function skill:update(now)
    -- need to check by name to respect talents for some reason
    if (self.name) then
       
-      local usable = IsUsableSpell(self.name)
+      local usable = IsUsableSpell(self.spellID)  -- name)
       
       --print(string.format("skill:update(%s): %f", self.name, now))
-      local start, duration, enabled = GetSpellCooldown(self.name)
+      local start, duration, enabled = GetSpellCooldown(self.spellID)  -- name)
       self.cd = 0
       if (start and duration) then
 	 if (start > 0 and duration > 0) then
