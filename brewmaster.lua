@@ -9,7 +9,8 @@ local monk = SkillBar.monk
 local skill_enum =
    {
       NIL = 0,
-      BLACK_OX_BREW = 115399,      
+      BLACKOUT_KICK = 205523,
+      BLACK_OX_BREW = 115399,
       BREATH_OF_FIRE = 115181,
       CELESTIAL_BREW = 322507,
       EXPLODING_KEG = 214326,
@@ -97,13 +98,14 @@ end
 ----------------- skills ------------------
 local skills = prototype.datalist:new(
    {
-      blackoutkick    = prototype.skill:new(monk.skill_enum.BLACKOUT_KICK),
+      blackoutkick    = prototype.skill:new(skill_enum.BLACKOUT_KICK),
       breathoffire    = prototype.skill:new(skill_enum.BREATH_OF_FIRE),
       celestialbrew   = prototype.skill:new(skill_enum.CELESTIAL_BREW),
       chiwave         = prototype.skill:new(monk.skill_enum.CHI_WAVE),
       chiburst        = prototype.skill:new(monk.skill_enum.CHI_BURST),
       explodingkeg    = prototype.skill:new(skill_enum.EXPLODING_KEG),
       kegsmash        = prototype.skill:new(skill_enum.KEG_SMASH),
+      risingsunkick   = prototype.skill:new(monk.skill_enum.RISING_SUN_KICK),
       rushingjadewind = prototype.skill:new(monk.skill_enum.RUSHING_JADE_WIND),
       tigerpalm       = prototype.skill:new(monk.skill_enum.TIGER_PALM),
    }
@@ -193,20 +195,18 @@ function brewmaster:update(now)
    if (InCombatLockdown()) then
       if (skills.kegsmash.usable) then
 	 skill = skill_enum.KEG_SMASH
-      elseif (skills.blackoutkick.usable) then
-	 skill = monk.skill_enum.BLACKOUT_KICK
-      elseif (skills.celestialbrew.usable and
-		 player_buffs.purifiedchi.active
-      ) then
-	 skill = skill_enum.CELESTIAL_BREW
       elseif (skills.breathoffire.usable) then
 	 skill = skill_enum.BREATH_OF_FIRE
+      elseif (skills.blackoutkick.usable) then
+	 skill = skill_enum.BLACKOUT_KICK
+      elseif (skills.risingsunkick.usable) then
+	 skill = monk.skill_enum.RISING_SUN_KICK
       elseif (skills.rushingjadewind.usable and
-		 player_buffs.rushingjadewind.pandemic.active
+	      player_buffs.rushingjadewind.pandemic.active
       ) then
 	 skill = monk.skill_enum.RUSHING_JADE_WIND
       elseif (skills.tigerpalm.usable and
-		 (monk.energy.current > 65)
+	      (monk.energy.current > 65)
       ) then
 	 skill = monk.skill_enum.TIGER_PALM
       end

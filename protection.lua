@@ -89,7 +89,7 @@ function ignorepain:update(now)
    local costTables = GetSpellPowerCost(skill_enum.IGNORE_PAIN)
    for _, costTable in pairs(costTables) do
       if costTable.hasRequiredAura then
-	 o.rage_cost = costTable.cost
+	 self.rage_cost = costTable.cost
 	 break
       end
    end

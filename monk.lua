@@ -8,7 +8,7 @@ local skill_enum =
    {
       -- common skills
       NIL = 0,
-      BLACKOUT_KICK = 100784,
+      -- BLACKOUT_KICK = 100784, not brewmaster version
       CRACKLING_JADE_LIGHTNING = 117952,
       DETOX = 115450,
       EXPEL_HARM = 115072,
@@ -17,6 +17,7 @@ local skill_enum =
       PARALYSIS = 115078,
       PROVOKE = 115546,
       RESUSCITATE = 115178,
+      RISING_SUN_KICK = 107428,
       ROLL = 109132,
       SPEAR_HAND_STRIKE = 116705,
       SPINNING_CRANE_KICK = 101546,
