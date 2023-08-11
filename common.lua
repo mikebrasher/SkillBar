@@ -268,21 +268,26 @@ function traits:load()
    local treeIDs = configInfo["treeIDs"]
    for itree = 1, #treeIDs do
       for _, nodeID in pairs(C_Traits.GetTreeNodes(treeIDs[itree])) do
-	 local node = {}
 	 local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
-	 local activeEntry = nodeInfo.activeEntry
-	 -- node.activeEntry = activeEntry
-	 node.nodeID = nodeID
-	 node.activeRank = nodeInfo.activeRank
-	 -- activeEntry == nil for traits in other specs?
-	 if (activeEntry) then
-	    local activeEntryID = activeEntry.entryID
-	    local entryInfo = C_Traits.GetEntryInfo(configID, activeEntryID)
+	 -- node.type = nodeInfo.type -- Enum.TraitNodeType, 0: single, 2: selection
+	 for _, entryID in pairs(nodeInfo.entryIDs) do
+	    local node = {}
+	    node.nodeID = nodeID
+	    node.entryID = entryID
+	    node.activeEntry = nodeInfo.activeEntry
+	    node.entryIDsWithCommittedRanks = nodeInfo.entryIDsWithCommittedRanks
+	    node.activeRank = nodeInfo.activeRank
+	    local entryInfo = C_Traits.GetEntryInfo(configID, entryID)
+	    node.isAvailable = entryInfo.isAvailable
 	    local definitionID = entryInfo["definitionID"]
 	    local definitionInfo = C_Traits.GetDefinitionInfo(definitionID)
 	    local spellID = definitionInfo["spellID"]
 	    local spellName = GetSpellInfo(spellID)
 	    node.spellID = spellID
+	    -- local conditionID = entryInfo["conditionID"]
+	    -- local conditionInfo = C_Traits.GetConditionInfo(configID, conditionID)
+	    -- node.ranksGranted = conditionInfo.ranksGranted
+	    -- node.isMet = conditionInfo.isMet
 	    -- only add nodes with active entries
 	    self.all[spellName] = node
 	 end

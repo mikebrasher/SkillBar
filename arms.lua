@@ -39,6 +39,7 @@ local buff_enum =
 
 
 ----------------- traits ------------------
+-- check SkillBar.common.traits in game using virag dev tool
 local traits = prototype.traitlist:new(
    {
       -- danceofdeath = prototype.trait:new(90263),

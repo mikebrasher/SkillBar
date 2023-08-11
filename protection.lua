@@ -44,10 +44,11 @@ local buff_enum =
    }
 
 
------------------ talents ------------------
-local talents = prototype.talentlist:new(
+----------------- traits ------------------
+-- check SkillBar.common.traits in game using virag dev tool
+local traits = prototype.traitlist:new(
    {
-      --absolutecorruption = prototype.talent:new(2, 2),
+      -- annihilator      = prototype.trait:new(90419),
    }
 )
 
@@ -155,7 +156,7 @@ function protection:new()
 	 skill = skill_enum.NIL,
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
-	 talents = talents,
+	 traits = traits,
 	 skills = skills,
 	 player_buffs = player_buffs,
 	 target_debuffs = target_debuffs,

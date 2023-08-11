@@ -44,10 +44,14 @@ local buff_enum =
    }
 
 
------------------ talents ------------------
-local talents = prototype.talentlist:new(
+----------------- traits ------------------
+-- check SkillBar.common.traits in game using virag dev tool
+local traits = prototype.traitlist:new(
    {
-      bobandweave = prototype.talent:new(5, 1)
+      bobandweave = prototype.trait:new(80636),
+      risingsunkick = prototype.trait:new(80690),
+      rushingjadewind = prototype.trait:new(80727, 101549), -- choice nodes need to specifiy entryID
+      specialdelivery = prototype.trait:new(80727, 101548),
    }
 )
 
@@ -68,7 +72,7 @@ function stagger:update(now)
    self.current = UnitStagger("player") or 0
 
    local tickcount = 20
-   if (talents.bobandweave.selected) then
+   if (traits.bobandweave.selected) then
       tickcount = 26
    end
 
@@ -168,7 +172,7 @@ function brewmaster:new()
 	 skill = skill_enum.NIL,
 	 skill_enum = skill_enum,
 	 buff_enum = buff_enum,
-	 talents = talents,
+	 traits = traits,
 	 stagger = stagger,
 	 skills = skills,
 	 player_buffs = player_buffs,
@@ -199,10 +203,13 @@ function brewmaster:update(now)
 	 skill = skill_enum.BREATH_OF_FIRE
       elseif (skills.blackoutkick.usable) then
 	 skill = skill_enum.BLACKOUT_KICK
-      elseif (skills.risingsunkick.usable) then
+      elseif (skills.risingsunkick.usable and
+	      traits.risingsunkick.selected
+      ) then
 	 skill = monk.skill_enum.RISING_SUN_KICK
       elseif (skills.rushingjadewind.usable and
-	      player_buffs.rushingjadewind.pandemic.active
+	      (traits.rushingjadewind.selected and
+	       player_buffs.rushingjadewind.pandemic.active)
       ) then
 	 skill = monk.skill_enum.RUSHING_JADE_WIND
       elseif (skills.tigerpalm.usable and

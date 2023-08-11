@@ -648,11 +648,12 @@ end
 
 local trait = extends(data)
 
-function trait:new(id)
+function trait:new(nodeID, entryID)
    local o = trait.__super.new(
       self,
       {
-	 id = id, -- nodeID
+	 nodeID = nodeID,
+	 entryID = entryID,
 	 selected = false,
       }
    )
@@ -663,12 +664,13 @@ end
 function trait:getinfo()
    -- print("get info")
    local configID = C_ClassTalents.GetActiveConfigID()
-   local nodeInfo = C_Traits.GetNodeInfo(configID, self.id)
+   local nodeInfo = C_Traits.GetNodeInfo(configID, self.nodeID)
    -- print(string.format("configID: %d, nodeID: %d", configID, nodeID))
    if (nodeInfo) then
       local activeEntry = nodeInfo.activeEntry
       local activeRank = nodeInfo.activeRank
-      self.selected = activeEntry and activeRank > 0
+      local match = not self.entryID or self.entryID == activeEntry.entryID
+      self.selected = activeEntry and match and activeRank > 0
    else
       print(string.format("warning: trait id:%d is not valid", self.id))
    end
